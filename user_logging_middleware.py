@@ -33,3 +33,4 @@ class UserLoggingMiddleware(BaseMiddleware):
         # Продолжаем обработку события
         return await handler(event, data)
 
+
