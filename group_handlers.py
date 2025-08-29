@@ -14,7 +14,8 @@ from database import db
 from chat_handler import ChatType, ChatBehavior
 from enhanced_keyboards import (
     get_public_group_keyboard, get_admin_group_keyboard, 
-    get_quick_schedule_keyboard, get_admin_requests_keyboard
+    get_quick_schedule_keyboard, get_admin_requests_keyboard,
+    get_statistics_keyboard
 )
 from keyboards import (
     get_schedule_directions_keyboard, get_back_to_directions_keyboard, 
@@ -44,12 +45,16 @@ async def group_start_command(message: Message):
         message.chat.title
     )
     
+    # Получаем username бота для кнопки обратной связи
+    bot_info = await message.bot.get_me()
+    bot_username = bot_info.username
+    
     if chat_type == ChatType.PUBLIC_GROUP:
-        keyboard = get_public_group_keyboard()
+        keyboard = get_public_group_keyboard(bot_username)
     elif chat_type == ChatType.ADMIN_GROUP:
         keyboard = get_admin_group_keyboard()
     else:
-        keyboard = get_public_group_keyboard()
+        keyboard = get_public_group_keyboard(bot_username)
     
     await message.answer(welcome_text, parse_mode="Markdown", reply_markup=keyboard)
 
@@ -132,24 +137,16 @@ async def schedule_tomorrow_callback(callback: CallbackQuery):
     )
     await callback.answer()
 
-@group_router.callback_query(F.data == "show_chat_id")
-async def show_group_chat_id(callback: CallbackQuery):
-    """Показать ID группового чата"""
-    chat = callback.message.chat
-    chat_title = chat.title or "Без названия"
-    chat_type_ru = {
-        'group': 'Группа',
-        'supergroup': 'Супергруппа',
-        'channel': 'Канал'
-    }.get(chat.type, chat.type)
-    
+@group_router.callback_query(F.data == "feedback_link")
+async def feedback_link_fallback(callback: CallbackQuery):
+    """Fallback для кнопки обратной связи, если username бота недоступен"""
     text = (
-        f"📋 *{chat_type_ru}: {chat_title}*\n\n"
-        f"🆔 *ID чата:* `{chat.id}`\n"
-        f"📱 *Тип:* {chat_type_ru}\n\n"
-        f"📢 *Для администраторов:*\n"
-        f"Скопируйте ID: `{chat.id}`\n"
-        f"Используйте в админ-панели бота для настройки уведомлений."
+        "💬 *Обратная связь*\n\n"
+        "Чтобы оставить обратную связь или задать вопрос преподавателю:\n\n"
+        "1️⃣ Найдите этого бота в поиске Telegram\n"
+        "2️⃣ Напишите ему в личные сообщения\n"
+        "3️⃣ Выберите 'Обратная связь' в меню\n\n"
+        "📝 В личных сообщениях доступен полный функционал бота!"
     )
     
     await callback.message.edit_text(text, parse_mode="Markdown")
@@ -160,19 +157,17 @@ async def bot_info_callback(callback: CallbackQuery):
     """Информация о боте"""
     text = (
         "🤖 *IT-Cube Bot*\n\n"
-        "📚 *Основные функции:*\n"
-        "• Просмотр расписания занятий\n"
-        "• Обратная связь с преподавателями\n"
-        "• Уведомления для администрации\n"
-        "• Управление заявками\n\n"
-        "👥 *Для групп:*\n"
-        "• Просмотр расписания по направлениям\n"
-        "• Получение ID чата\n"
-        "• Уведомления (для админских групп)\n\n"
-        "💬 *Полный функционал доступен в личных сообщениях с ботом.*"
+        "📚 *Этот бот предназначен для просмотра расписания занятий.*\n"
+        "• Вы можете узнать расписание по направлениям прямо в группе.\n"
+        "• Для получения ID чата используйте соответствующую кнопку.\n\n"
+        "💬 *Если вы хотите оставить обратную связь или задать вопрос преподавателю — напишите боту в личные сообщения!*"
     )
     
-    await callback.message.edit_text(text, parse_mode="Markdown")
+    # Создаем клавиатуру с кнопкой возврата
+    builder = InlineKeyboardBuilder()
+    builder.add(InlineKeyboardButton(text="⬅️ Назад в меню", callback_data="back_to_group_menu"))
+    
+    await callback.message.edit_text(text, parse_mode="Markdown", reply_markup=builder.as_markup())
     await callback.answer()
 
 # Обработчики расписания для групп
@@ -284,12 +279,16 @@ async def back_to_group_menu(callback: CallbackQuery):
         callback.message.chat.title
     )
     
+    # Получаем username бота для кнопки обратной связи
+    bot_info = await callback.bot.get_me()
+    bot_username = bot_info.username
+    
     if chat_type == ChatType.PUBLIC_GROUP:
-        keyboard = get_public_group_keyboard()
+        keyboard = get_public_group_keyboard(bot_username)
     elif chat_type == ChatType.ADMIN_GROUP:
         keyboard = get_admin_group_keyboard()
     else:
-        keyboard = get_public_group_keyboard()
+        keyboard = get_public_group_keyboard(bot_username)
     
     await callback.message.edit_text(welcome_text, parse_mode="Markdown", reply_markup=keyboard)
     await callback.answer()
@@ -327,17 +326,111 @@ async def admin_active_requests(callback: CallbackQuery):
 
 @group_router.callback_query(F.data == "group_statistics")
 async def group_statistics_callback(callback: CallbackQuery):
-    """Статистика для группы"""
+    """Меню статистики для группы"""
     chat_type = await ChatBehavior.determine_chat_type(callback.message)
     if chat_type != ChatType.ADMIN_GROUP:
         await callback.answer("❌ Доступно только в админских группах", show_alert=True)
         return
     
-    stats = await get_group_statistics()
+    text = (
+        "📊 *Статистика IT-Cube Bot*\n\n"
+        "Выберите тип статистики:"
+    )
+    
+    await callback.message.edit_text(
+        text,
+        parse_mode="Markdown",
+        reply_markup=get_statistics_keyboard(chat_type)
+    )
+    await callback.answer()
+
+# Обработчики статистики для групп
+
+@group_router.callback_query(F.data == "stats_general")
+async def group_stats_general_callback(callback: CallbackQuery):
+    """Общая статистика для группы"""
+    chat_type = await ChatBehavior.determine_chat_type(callback.message)
+    if chat_type != ChatType.ADMIN_GROUP:
+        await callback.answer("❌ Доступно только в админских группах", show_alert=True)
+        return
+    
+    from admin_handlers import get_general_statistics
+    stats = await get_general_statistics()
+    
+    # Создаем клавиатуру с кнопкой возврата
+    builder = InlineKeyboardBuilder()
+    builder.add(InlineKeyboardButton(text="⬅️ Назад к статистике", callback_data="group_statistics"))
     
     await callback.message.edit_text(
         stats,
-        parse_mode="Markdown"
+        parse_mode="Markdown",
+        reply_markup=builder.as_markup()
+    )
+    await callback.answer()
+
+@group_router.callback_query(F.data == "stats_requests")
+async def group_stats_requests_callback(callback: CallbackQuery):
+    """Статистика заявок для группы"""
+    chat_type = await ChatBehavior.determine_chat_type(callback.message)
+    if chat_type != ChatType.ADMIN_GROUP:
+        await callback.answer("❌ Доступно только в админских группах", show_alert=True)
+        return
+    
+    from admin_handlers import get_requests_statistics
+    stats = await get_requests_statistics()
+    
+    # Создаем клавиатуру с кнопкой возврата
+    builder = InlineKeyboardBuilder()
+    builder.add(InlineKeyboardButton(text="⬅️ Назад к статистике", callback_data="group_statistics"))
+    
+    await callback.message.edit_text(
+        stats,
+        parse_mode="Markdown",
+        reply_markup=builder.as_markup()
+    )
+    await callback.answer()
+
+@group_router.callback_query(F.data == "stats_users")
+async def group_stats_users_callback(callback: CallbackQuery):
+    """Статистика пользователей для группы"""
+    chat_type = await ChatBehavior.determine_chat_type(callback.message)
+    if chat_type != ChatType.ADMIN_GROUP:
+        await callback.answer("❌ Доступно только в админских группах", show_alert=True)
+        return
+    
+    from admin_handlers import get_users_statistics
+    stats = await get_users_statistics()
+    
+    # Создаем клавиатуру с кнопкой возврата
+    builder = InlineKeyboardBuilder()
+    builder.add(InlineKeyboardButton(text="⬅️ Назад к статистике", callback_data="group_statistics"))
+    
+    await callback.message.edit_text(
+        stats,
+        parse_mode="Markdown",
+        reply_markup=builder.as_markup()
+    )
+    await callback.answer()
+
+@group_router.callback_query(F.data == "stats_directions")
+async def group_stats_directions_callback(callback: CallbackQuery):
+    """Статистика по направлениям для группы"""
+    chat_type = await ChatBehavior.determine_chat_type(callback.message)
+    if chat_type != ChatType.ADMIN_GROUP:
+        await callback.answer("❌ Доступно только в админских группах", show_alert=True)
+        return
+    
+    from admin_handlers import get_directions_statistics
+    stats = await get_directions_statistics()
+    
+    # Создаем клавиатуру с кнопкой возврата
+    builder = InlineKeyboardBuilder()
+    builder.add(InlineKeyboardButton(text="⬅️ Назад к статистике", callback_data="group_statistics"))
+    
+    await callback.message.edit_text(
+        stats,
+        parse_mode="Markdown",
+        reply_markup=builder.as_markup()
     )
     await callback.answer()
 
@@ -484,6 +577,120 @@ def get_back_to_quick_schedule_keyboard():
     builder.add(InlineKeyboardButton(text="⬅️ Назад", callback_data="quick_schedule"))
     return builder.as_markup()
 
+# Обработка команды !меню в группах
+@group_router.message(F.text == "!меню", F.chat.type.in_({"group", "supergroup"}))
+async def handle_menu_command(message: Message):
+    """Обработка команды !меню в группах"""
+    chat_type = await ChatBehavior.determine_chat_type(message)
+    
+    welcome_text = ChatBehavior.get_welcome_message(
+        chat_type, 
+        message.from_user.first_name,
+        message.chat.title
+    )
+    
+    # Получаем username бота для кнопки обратной связи
+    bot_info = await message.bot.get_me()
+    bot_username = bot_info.username
+    
+    if chat_type == ChatType.PUBLIC_GROUP:
+        keyboard = get_public_group_keyboard(bot_username)
+    elif chat_type == ChatType.ADMIN_GROUP:
+        keyboard = get_admin_group_keyboard()
+    else:
+        keyboard = get_public_group_keyboard(bot_username)
+    
+    await message.reply(welcome_text, parse_mode="Markdown", reply_markup=keyboard)
+
+# Обработка ответов администраторов на заявки в групповых чатах
+@group_router.message(F.reply_to_message & F.chat.type.in_({"group", "supergroup"}))
+async def handle_admin_reply_in_group(message: Message):
+    """Обработка ответов администраторов на заявки в групповых чатах через reply"""
+    import re
+    from enhanced_keyboards import get_admin_keyboard, get_teacher_keyboard
+    
+    # Проверяем, что это reply на сообщение бота
+    if not message.reply_to_message or message.reply_to_message.from_user.id != message.bot.id:
+        return
+    
+    # Проверяем, что отвечающий - админ или преподаватель
+    is_admin = await db.is_admin(message.from_user.id)
+    is_teacher = await db.is_teacher(message.from_user.id)
+    
+    if not (is_admin or is_teacher):
+        return
+    
+    # Проверяем, что это админская группа
+    chat_type = await ChatBehavior.determine_chat_type(message)
+    if chat_type != ChatType.ADMIN_GROUP:
+        return
+    
+    # Ищем номер заявки в тексте сообщения, на которое отвечают
+    reply_text = message.reply_to_message.text or ""
+    match = re.search(r'#(\d+)', reply_text)
+    if not match:
+        await message.reply("❌ Не удалось найти номер заявки для ответа.")
+        return
+    
+    message_id = int(match.group(1))
+    reply_content = message.text
+    
+    # Получаем исходную заявку
+    feedback_msg = await db.get_feedback_message(message_id)
+    if not feedback_msg:
+        await message.reply(f"❌ Заявка #{message_id} не найдена.")
+        return
+    
+    user_id = feedback_msg[1]
+    original_text = feedback_msg[4]
+    is_answered = feedback_msg[6]
+    status = feedback_msg[7] if len(feedback_msg) > 7 else 'active'
+    
+    # Проверяем, что заявка ещё активна
+    if status == 'closed' or is_answered:
+        await message.reply(f"⚠️ Заявка #{message_id} уже закрыта.")
+        return
+    
+    # Если отвечает преподаватель, проверяем права на данную заявку
+    if is_teacher and not is_admin:
+        can_reply = await db.can_teacher_reply_to_request(message.from_user.id, message_id)
+        if not can_reply:
+            await message.reply(
+                f"❌ У вас нет прав для ответа на заявку #{message_id}.\n"
+                "Вы можете отвечать только на заявки по направлениям, к которым вы привязаны."
+            )
+            return
+    
+    try:
+        # Определяем роль отвечающего
+        if is_admin and not is_teacher:
+            responder_role = "Администратор"
+        elif is_teacher:
+            responder_role = "Преподаватель"
+        else:
+            responder_role = "Администратор"  # по умолчанию
+        
+        user_reply = (
+            f"✅ *Ответ на вашу заявку #{message_id}*\n\n"
+            f"👤 *Ответил:* {responder_role}\n"
+            f"📋 *Статус:* Заявка закрыта\n\n"
+            f"💬 *Ваша заявка:*\n{original_text}\n\n"
+            f"📝 *Ответ:*\n{reply_content}\n\n"
+            f"💡 Теперь вы можете создать новую заявку, если это необходимо."
+        )
+        
+        await message.bot.send_message(user_id, user_reply, parse_mode="Markdown")
+        await db.mark_message_answered(message_id, message.from_user.id, reply_content)
+        
+        await message.reply(
+            f"✅ Ответ на заявку #{message_id} отправлен! Заявка закрыта."
+        )
+        
+    except Exception as e:
+        await message.reply(
+            f"❌ Ошибка отправки ответа: {str(e)}"
+        )
+
 # Обработка упоминаний бота в группах
 @group_router.message(F.text.contains("@") & F.chat.type.in_({"group", "supergroup"}))
 async def handle_bot_mention(message: Message):
@@ -505,6 +712,7 @@ async def handle_bot_mention(message: Message):
             help_text = (
                 "🤖 *Доступные команды в группе:*\n\n"
                 "• `/start` - показать меню\n"
+                "• `!меню` - быстрый вызов меню\n"
                 "• `/chatid` - показать ID чата\n"
                 "• Упомяните меня с словом 'расписание' для быстрого доступа\n\n"
                 "💬 *Для полного функционала напишите мне в личные сообщения!*"

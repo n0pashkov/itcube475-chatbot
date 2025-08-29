@@ -5,7 +5,7 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeybo
 from aiogram.utils.keyboard import InlineKeyboardBuilder, ReplyKeyboardBuilder
 from chat_handler import ChatType
 
-def get_keyboard_for_chat_type(chat_type: ChatType, user_id: int = None):
+def get_keyboard_for_chat_type(chat_type: ChatType, user_id: int = None, bot_username: str = None):
     """Получить клавиатуру в зависимости от типа чата"""
     
     if chat_type == ChatType.PRIVATE_USER:
@@ -18,7 +18,7 @@ def get_keyboard_for_chat_type(chat_type: ChatType, user_id: int = None):
         return get_teacher_keyboard()
     
     elif chat_type == ChatType.PUBLIC_GROUP:
-        return get_public_group_keyboard()
+        return get_public_group_keyboard(bot_username)
     
     elif chat_type == ChatType.ADMIN_GROUP:
         return get_admin_group_keyboard()
@@ -70,17 +70,22 @@ def get_teacher_keyboard():
     builder.adjust(2, 2, 1)
     return builder.as_markup(resize_keyboard=True)
 
-def get_public_group_keyboard():
+def get_public_group_keyboard(bot_username: str = None):
     """Inline клавиатура для публичной группы"""
     builder = InlineKeyboardBuilder()
     
     builder.add(InlineKeyboardButton(text="📅 Расписание", callback_data="schedule"))
-    builder.add(InlineKeyboardButton(text="🆔 ID чата", callback_data="show_chat_id"))
-    builder.add(InlineKeyboardButton(text="ℹ️ О боте", callback_data="bot_info"))
-    # TODO: Заменить на реальный username бота
-    # builder.add(InlineKeyboardButton(text="💬 Написать в ЛС", url="https://t.me/YOUR_BOT_USERNAME"))
     
-    builder.adjust(2, 2)
+    # Кнопка обратной связи со ссылкой на ЛС с ботом
+    if bot_username:
+        builder.add(InlineKeyboardButton(text="💬 Обратная связь", url=f"https://t.me/{bot_username}"))
+    else:
+        # Fallback - callback если username недоступен
+        builder.add(InlineKeyboardButton(text="💬 Обратная связь", callback_data="feedback_link"))
+    
+    builder.add(InlineKeyboardButton(text="ℹ️ О боте", callback_data="bot_info"))
+    
+    builder.adjust(2, 1)
     return builder.as_markup()
 
 def get_admin_group_keyboard():
@@ -173,7 +178,13 @@ def get_statistics_keyboard(chat_type: ChatType):
         builder.add(InlineKeyboardButton(text="🎫 Статистика заявок", callback_data="stats_requests"))
         builder.add(InlineKeyboardButton(text="👥 Активность пользователей", callback_data="stats_users"))
         builder.add(InlineKeyboardButton(text="📚 По направлениям", callback_data="stats_directions"))
-        builder.adjust(2, 2)
+        
+        # Добавляем кнопку возврата в зависимости от типа чата
+        if chat_type == ChatType.ADMIN_GROUP:
+            builder.add(InlineKeyboardButton(text="⬅️ Назад в меню", callback_data="back_to_group_menu"))
+            builder.adjust(2, 2, 1)
+        else:
+            builder.adjust(2, 2)
     
     elif chat_type == ChatType.PRIVATE_TEACHER:
         builder.add(InlineKeyboardButton(text="🎫 Мои заявки", callback_data="stats_my_requests"))

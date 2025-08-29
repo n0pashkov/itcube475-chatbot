@@ -159,7 +159,7 @@ async def cmd_start_private(message: Message):
     )
     
     # Получаем соответствующую клавиатуру
-    keyboard = get_keyboard_for_chat_type(chat_type, message.from_user.id)
+    keyboard = get_keyboard_for_chat_type(chat_type, message.from_user.id, None)
     
     await message.answer(welcome_text, parse_mode="Markdown", reply_markup=keyboard)
 
@@ -1472,8 +1472,8 @@ async def unassign_teacher(callback: CallbackQuery):
     # Обновляем сообщение
     await manage_direction(callback)
 
-# Обработка текстовых сообщений в состоянии ожидания
-@router.message()
+# Обработка текстовых сообщений в состоянии ожидания (только в ЛС)
+@router.message(F.chat.type == "private")
 async def handle_text_messages(message: Message):
     # Если админ или преподаватель отвечает reply на сообщение бота (в ЛС или группе)
     if message.reply_to_message and message.reply_to_message.from_user.id == message.bot.id:
@@ -1604,7 +1604,7 @@ async def handle_text_messages(message: Message):
         else:
             # Обычный пользователь - показываем обычную клавиатуру
             chat_type = await ChatBehavior.determine_chat_type(message)
-            no_rights_keyboard = get_keyboard_for_chat_type(chat_type, message.from_user.id)
+            no_rights_keyboard = get_keyboard_for_chat_type(chat_type, message.from_user.id, None)
             
             await message.answer(
                 "❌ У вас нет прав для ответа на сообщения. Только администраторы и преподаватели могут отвечать на заявки.",
@@ -1613,7 +1613,7 @@ async def handle_text_messages(message: Message):
     else:
         # Обычное сообщение - показываем меню
         chat_type = await ChatBehavior.determine_chat_type(message)
-        keyboard = get_keyboard_for_chat_type(chat_type, message.from_user.id)
+        keyboard = get_keyboard_for_chat_type(chat_type, message.from_user.id, None)
         await message.answer(
             "Используйте кнопки меню для навигации по боту.",
             reply_markup=keyboard
