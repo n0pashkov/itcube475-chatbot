@@ -601,14 +601,17 @@ async def admin_requests_button(message: Message):
 @router.message(F.text == "📊 Статистика")
 async def admin_statistics_button(message: Message):
     """Обработка кнопки Статистика"""
-    if not await db.is_admin(message.from_user.id):
+    print(f"[DEBUG] admin_statistics_button (handlers.py) вызвана пользователем {message.from_user.id}")
+    
+    is_admin = await db.is_admin(message.from_user.id)
+    print(f"[DEBUG] is_admin в handlers.py для пользователя {message.from_user.id}: {is_admin}")
+    
+    if not is_admin:
+        print(f"[DEBUG] handlers.py отправляет сообщение об отказе в доступе")
         await message.answer("❌ У вас нет прав для выполнения этой команды.")
         return
     
-    if message.chat.type != 'private':
-        await message.answer("⚠️ Эта функция доступна только в личных сообщениях.")
-        return
-    
+    print(f"[DEBUG] handlers.py переадресует на admin_handlers")
     # Переадресуем на обработчик из admin_handlers
     from admin_handlers import admin_statistics_menu
     await admin_statistics_menu(message)

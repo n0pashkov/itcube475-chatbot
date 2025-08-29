@@ -60,6 +60,18 @@ async def admin_requests_menu(message: Message, **kwargs):
 @require_permission("statistics")
 async def admin_statistics_menu(message: Message, **kwargs):
     """Меню статистики"""
+    print(f"[DEBUG] admin_statistics_menu вызвана пользователем {message.from_user.id} ({message.from_user.first_name})")
+    
+    # Дополнительная проверка прав администратора для надежности
+    is_admin = await db.is_admin(message.from_user.id)
+    print(f"[DEBUG] is_admin для пользователя {message.from_user.id}: {is_admin}")
+    
+    if not is_admin:
+        print(f"[DEBUG] Отправляем сообщение об отказе в доступе")
+        await message.answer("❌ У вас нет прав для выполнения этой команды.")
+        return
+    
+    print(f"[DEBUG] Права проверены успешно, продолжаем выполнение")
     chat_type = await ChatBehavior.determine_chat_type(message)
     
     text = (
@@ -570,49 +582,13 @@ async def back_to_settings_callback(callback: CallbackQuery):
 
 # Статистика
 
-@admin_router.callback_query(F.data == "stats_general")
-async def show_general_statistics(callback: CallbackQuery):
-    """Общая статистика"""
-    stats = await get_general_statistics()
-    
-    await callback.message.edit_text(
-        stats,
-        parse_mode="Markdown"
-    )
-    await callback.answer()
+# Обработчик stats_general перенесён в group_handlers.py для избежания конфликтов
 
-@admin_router.callback_query(F.data == "stats_requests")
-async def show_requests_statistics(callback: CallbackQuery):
-    """Статистика заявок"""
-    stats = await get_requests_statistics()
-    
-    await callback.message.edit_text(
-        stats,
-        parse_mode="Markdown"
-    )
-    await callback.answer()
+# Обработчик stats_requests перенесён в group_handlers.py для избежания конфликтов
 
-@admin_router.callback_query(F.data == "stats_users")
-async def show_users_statistics(callback: CallbackQuery):
-    """Статистика пользователей"""
-    stats = await get_users_statistics()
-    
-    await callback.message.edit_text(
-        stats,
-        parse_mode="Markdown"
-    )
-    await callback.answer()
+# Обработчик stats_users перенесён в group_handlers.py для избежания конфликтов
 
-@admin_router.callback_query(F.data == "stats_directions")
-async def show_directions_statistics(callback: CallbackQuery):
-    """Статистика по направлениям"""
-    stats = await get_directions_statistics()
-    
-    await callback.message.edit_text(
-        stats,
-        parse_mode="Markdown"
-    )
-    await callback.answer()
+# Обработчик stats_directions перенесён в group_handlers.py для избежания конфликтов
 
 # Дополнительные админские команды
 

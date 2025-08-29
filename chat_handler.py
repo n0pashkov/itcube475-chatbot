@@ -253,11 +253,21 @@ def require_permission(command: str):
     """Декоратор для проверки разрешения на выполнение команды"""
     def decorator(handler):
         async def wrapper(message: Message, *args, **kwargs):
-            if not await ChatBehavior.can_execute_command(message, command):
-                chat_type = await ChatBehavior.determine_chat_type(message)
+            print(f"[DEBUG] require_permission проверяет команду '{command}' для пользователя {message.from_user.id}")
+            
+            chat_type = await ChatBehavior.determine_chat_type(message)
+            print(f"[DEBUG] Определен тип чата: {chat_type}")
+            
+            can_execute = await ChatBehavior.can_execute_command(message, command)
+            print(f"[DEBUG] can_execute_command для '{command}': {can_execute}")
+            
+            if not can_execute:
                 restricted_msg = await ChatBehavior.get_restricted_message(chat_type, command)
+                print(f"[DEBUG] Отправляем сообщение об ограничении: {restricted_msg}")
                 await message.answer(restricted_msg)
                 return
+            
+            print(f"[DEBUG] Разрешение получено, вызываем обработчик {handler.__name__}")
             return await handler(message, *args, **kwargs)
         return wrapper
     return decorator

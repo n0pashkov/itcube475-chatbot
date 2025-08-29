@@ -327,10 +327,13 @@ async def admin_active_requests(callback: CallbackQuery):
 @group_router.callback_query(F.data == "group_statistics")
 async def group_statistics_callback(callback: CallbackQuery):
     """Меню статистики для группы"""
-    chat_type = await ChatBehavior.determine_chat_type(callback.message)
-    if chat_type != ChatType.ADMIN_GROUP:
-        await callback.answer("❌ Доступно только в админских группах", show_alert=True)
+    # Для callback-запросов нужно проверять права пользователя напрямую
+    is_admin = await db.is_admin(callback.from_user.id)
+    if not is_admin:
+        await callback.answer("❌ Доступно только администраторам", show_alert=True)
         return
+    
+    chat_type = await ChatBehavior.determine_chat_type(callback.message)
     
     text = (
         "📊 *Статистика IT-Cube Bot*\n\n"
@@ -349,88 +352,130 @@ async def group_statistics_callback(callback: CallbackQuery):
 @group_router.callback_query(F.data == "stats_general")
 async def group_stats_general_callback(callback: CallbackQuery):
     """Общая статистика для группы"""
+    print(f"[DEBUG] group_stats_general_callback вызвана пользователем {callback.from_user.id}")
+    
+    # Для callback-запросов нужно проверять права пользователя напрямую
+    is_admin = await db.is_admin(callback.from_user.id)
+    print(f"[DEBUG] is_admin для пользователя {callback.from_user.id}: {is_admin}")
+    
     chat_type = await ChatBehavior.determine_chat_type(callback.message)
-    if chat_type != ChatType.ADMIN_GROUP:
-        await callback.answer("❌ Доступно только в админских группах", show_alert=True)
+    print(f"[DEBUG] Определен тип чата для статистики: {chat_type}")
+    
+    # Проверяем права: должен быть администратор И (админская группа ИЛИ личный чат)
+    if not is_admin:
+        print(f"[DEBUG] Пользователь не является администратором")
+        await callback.answer("❌ Доступно только администраторам", show_alert=True)
         return
+    
+    if chat_type not in [ChatType.ADMIN_GROUP, ChatType.PRIVATE_ADMIN, ChatType.PRIVATE_USER]:
+        print(f"[DEBUG] Неподходящий тип чата: {chat_type}")
+        await callback.answer("❌ Доступно только в личных сообщениях или админских группах", show_alert=True)
+        return
+    
+    print(f"[DEBUG] Доступ разрешен, продолжаем выполнение")
     
     from admin_handlers import get_general_statistics
     stats = await get_general_statistics()
     
-    # Создаем клавиатуру с кнопкой возврата
-    builder = InlineKeyboardBuilder()
-    builder.add(InlineKeyboardButton(text="⬅️ Назад к статистике", callback_data="group_statistics"))
+    # Создаем клавиатуру с кнопкой возврата в зависимости от типа чата
+    if chat_type == ChatType.ADMIN_GROUP:
+        builder = InlineKeyboardBuilder()
+        builder.add(InlineKeyboardButton(text="⬅️ Назад к статистике", callback_data="group_statistics"))
+        reply_markup = builder.as_markup()
+    else:  # PRIVATE_ADMIN - без кнопки возврата
+        reply_markup = None
     
     await callback.message.edit_text(
         stats,
         parse_mode="Markdown",
-        reply_markup=builder.as_markup()
+        reply_markup=reply_markup
     )
     await callback.answer()
 
 @group_router.callback_query(F.data == "stats_requests")
 async def group_stats_requests_callback(callback: CallbackQuery):
     """Статистика заявок для группы"""
-    chat_type = await ChatBehavior.determine_chat_type(callback.message)
-    if chat_type != ChatType.ADMIN_GROUP:
-        await callback.answer("❌ Доступно только в админских группах", show_alert=True)
+    # Для callback-запросов нужно проверять права пользователя напрямую
+    is_admin = await db.is_admin(callback.from_user.id)
+    if not is_admin:
+        await callback.answer("❌ Доступно только администраторам", show_alert=True)
         return
+    
+    chat_type = await ChatBehavior.determine_chat_type(callback.message)
     
     from admin_handlers import get_requests_statistics
     stats = await get_requests_statistics()
     
-    # Создаем клавиатуру с кнопкой возврата
-    builder = InlineKeyboardBuilder()
-    builder.add(InlineKeyboardButton(text="⬅️ Назад к статистике", callback_data="group_statistics"))
+    # Создаем клавиатуру с кнопкой возврата в зависимости от типа чата
+    if chat_type == ChatType.ADMIN_GROUP:
+        builder = InlineKeyboardBuilder()
+        builder.add(InlineKeyboardButton(text="⬅️ Назад к статистике", callback_data="group_statistics"))
+        reply_markup = builder.as_markup()
+    else:  # PRIVATE_ADMIN - без кнопки возврата
+        reply_markup = None
     
     await callback.message.edit_text(
         stats,
         parse_mode="Markdown",
-        reply_markup=builder.as_markup()
+        reply_markup=reply_markup
     )
     await callback.answer()
 
 @group_router.callback_query(F.data == "stats_users")
 async def group_stats_users_callback(callback: CallbackQuery):
     """Статистика пользователей для группы"""
-    chat_type = await ChatBehavior.determine_chat_type(callback.message)
-    if chat_type != ChatType.ADMIN_GROUP:
-        await callback.answer("❌ Доступно только в админских группах", show_alert=True)
+    # Для callback-запросов нужно проверять права пользователя напрямую
+    is_admin = await db.is_admin(callback.from_user.id)
+    if not is_admin:
+        await callback.answer("❌ Доступно только администраторам", show_alert=True)
         return
+    
+    chat_type = await ChatBehavior.determine_chat_type(callback.message)
     
     from admin_handlers import get_users_statistics
     stats = await get_users_statistics()
     
-    # Создаем клавиатуру с кнопкой возврата
-    builder = InlineKeyboardBuilder()
-    builder.add(InlineKeyboardButton(text="⬅️ Назад к статистике", callback_data="group_statistics"))
+    # Создаем клавиатуру с кнопкой возврата в зависимости от типа чата
+    if chat_type == ChatType.ADMIN_GROUP:
+        builder = InlineKeyboardBuilder()
+        builder.add(InlineKeyboardButton(text="⬅️ Назад к статистике", callback_data="group_statistics"))
+        reply_markup = builder.as_markup()
+    else:  # PRIVATE_ADMIN - без кнопки возврата
+        reply_markup = None
     
     await callback.message.edit_text(
         stats,
         parse_mode="Markdown",
-        reply_markup=builder.as_markup()
+        reply_markup=reply_markup
     )
     await callback.answer()
 
 @group_router.callback_query(F.data == "stats_directions")
 async def group_stats_directions_callback(callback: CallbackQuery):
     """Статистика по направлениям для группы"""
-    chat_type = await ChatBehavior.determine_chat_type(callback.message)
-    if chat_type != ChatType.ADMIN_GROUP:
-        await callback.answer("❌ Доступно только в админских группах", show_alert=True)
+    # Для callback-запросов нужно проверять права пользователя напрямую
+    is_admin = await db.is_admin(callback.from_user.id)
+    if not is_admin:
+        await callback.answer("❌ Доступно только администраторам", show_alert=True)
         return
+    
+    chat_type = await ChatBehavior.determine_chat_type(callback.message)
     
     from admin_handlers import get_directions_statistics
     stats = await get_directions_statistics()
     
-    # Создаем клавиатуру с кнопкой возврата
-    builder = InlineKeyboardBuilder()
-    builder.add(InlineKeyboardButton(text="⬅️ Назад к статистике", callback_data="group_statistics"))
+    # Создаем клавиатуру с кнопкой возврата в зависимости от типа чата
+    if chat_type == ChatType.ADMIN_GROUP:
+        builder = InlineKeyboardBuilder()
+        builder.add(InlineKeyboardButton(text="⬅️ Назад к статистике", callback_data="group_statistics"))
+        reply_markup = builder.as_markup()
+    else:  # PRIVATE_ADMIN - без кнопки возврата
+        reply_markup = None
     
     await callback.message.edit_text(
         stats,
         parse_mode="Markdown",
-        reply_markup=builder.as_markup()
+        reply_markup=reply_markup
     )
     await callback.answer()
 
