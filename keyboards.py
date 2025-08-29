@@ -134,6 +134,12 @@ def get_directions_keyboard(directions):
     """Клавиатура с направлениями для создания заявки"""
     builder = InlineKeyboardBuilder()
     
+    # Добавляем специальную кнопку "Администрация"
+    builder.add(InlineKeyboardButton(
+        text="👑 Администрация",
+        callback_data="select_direction:admin"
+    ))
+    
     for direction_id, direction_name in directions:
         # Обрезаем длинные названия для кнопок
         button_text = direction_name[:45] + "..." if len(direction_name) > 45 else direction_name
