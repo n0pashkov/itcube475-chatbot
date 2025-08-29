@@ -116,8 +116,9 @@ def get_quick_schedule_keyboard():
     builder.add(InlineKeyboardButton(text="📅 Сегодня", callback_data="schedule_today"))
     builder.add(InlineKeyboardButton(text="📅 Завтра", callback_data="schedule_tomorrow"))
     builder.add(InlineKeyboardButton(text="📋 Все направления", callback_data="schedule_all"))
+    builder.add(InlineKeyboardButton(text="⬅️ Назад в меню", callback_data="back_to_group_menu"))
     
-    builder.adjust(2, 1)
+    builder.adjust(2, 1, 1)
     return builder.as_markup()
 
 def get_admin_requests_keyboard():
@@ -129,8 +130,9 @@ def get_admin_requests_keyboard():
     builder.add(InlineKeyboardButton(text="📊 По направлениям", callback_data="requests_by_direction"))
     builder.add(InlineKeyboardButton(text="⏰ Недавние", callback_data="requests_recent"))
     builder.add(InlineKeyboardButton(text="🔍 Поиск", callback_data="requests_search"))
+    builder.add(InlineKeyboardButton(text="⬅️ Назад в меню", callback_data="back_to_group_menu"))
     
-    builder.adjust(2, 2, 1)
+    builder.adjust(2, 2, 1, 1)
     return builder.as_markup()
 
 def get_request_detail_keyboard(request_id: int, user_id: int, is_active: bool = True):

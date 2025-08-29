@@ -25,6 +25,12 @@ from schedule_parser import schedule_parser
 
 group_router = Router()
 
+def escape_markdown(text: str) -> str:
+    """Экранирует специальные символы Markdown"""
+    if not text:
+        return ""
+    return text.replace('_', r'\_').replace('*', r'\*').replace('[', r'\[').replace(']', r'\]').replace('`', r'\`')
+
 # Публичные группы
 
 @group_router.message(Command("start"), F.chat.type.in_({"group", "supergroup"}))
@@ -65,6 +71,16 @@ async def quick_schedule_callback(callback: CallbackQuery):
         "Выберите, что хотите посмотреть:",
         parse_mode="Markdown",
         reply_markup=get_quick_schedule_keyboard()
+    )
+    await callback.answer()
+
+@group_router.callback_query(F.data == "schedule_all")
+async def schedule_all_directions_callback(callback: CallbackQuery):
+    """Показать все направления для выбора расписания в группе"""
+    await callback.message.edit_text(
+        "📅 *Выберите направление для просмотра расписания:*",
+        parse_mode="Markdown",
+        reply_markup=get_schedule_directions_keyboard_for_groups()
     )
     await callback.answer()
 
@@ -292,10 +308,14 @@ async def admin_active_requests(callback: CallbackQuery):
     # Получаем активные заявки
     active_requests = await get_active_requests_summary()
     
+    # Проверяем, что получили корректный текст
+    if not active_requests:
+        active_requests = "📊 Активных заявок нет"
+    
     text = (
         "🎫 *Активные заявки*\n\n"
         f"{active_requests}\n\n"
-        "💡 Для ответа на заявку используйте reply на уведомление или команду /msg ID_пользователя в ЛС бота."
+        "💡 Для ответа на заявку используйте reply на уведомление или команду /msg ID\\_пользователя в ЛС бота."
     )
     
     await callback.message.edit_text(
@@ -403,7 +423,9 @@ async def get_active_requests_summary() -> str:
             return text
             
     except Exception as e:
-        return f"❌ Ошибка получения статистики: {str(e)}"
+        # Экранируем специальные символы Markdown в сообщении об ошибке
+        error_msg = escape_markdown(str(e))
+        return f"❌ Ошибка получения статистики: {error_msg}"
 
 async def get_group_statistics() -> str:
     """Получить статистику для группы"""
@@ -452,7 +474,9 @@ async def get_group_statistics() -> str:
             return text
             
     except Exception as e:
-        return f"❌ Ошибка получения статистики: {str(e)}"
+        # Экранируем специальные символы Markdown в сообщении об ошибке
+        error_msg = escape_markdown(str(e))
+        return f"❌ Ошибка получения статистики: {error_msg}"
 
 def get_back_to_quick_schedule_keyboard():
     """Кнопка возврата к быстрому расписанию"""

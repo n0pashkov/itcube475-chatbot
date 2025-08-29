@@ -26,6 +26,12 @@ from keyboards import (
 
 admin_router = Router()
 
+def escape_markdown(text: str) -> str:
+    """Экранирует специальные символы Markdown"""
+    if not text:
+        return ""
+    return text.replace('_', r'\_').replace('*', r'\*').replace('[', r'\[').replace(']', r'\]').replace('`', r'\`')
+
 # Состояния для админских функций
 class AdminStates(StatesGroup):
     waiting_for_request_search = State()
@@ -863,7 +869,9 @@ async def get_general_statistics():
             return text
             
     except Exception as e:
-        return f"❌ Ошибка получения статистики: {str(e)}"
+        # Экранируем специальные символы Markdown в сообщении об ошибке
+        error_msg = escape_markdown(str(e))
+        return f"❌ Ошибка получения статистики: {error_msg}"
 
 async def get_requests_statistics():
     """Статистика заявок"""
@@ -902,7 +910,9 @@ async def get_directions_statistics():
             return text
             
     except Exception as e:
-        return f"❌ Ошибка получения статистики: {str(e)}"
+        # Экранируем специальные символы Markdown в сообщении об ошибке
+        error_msg = escape_markdown(str(e))
+        return f"❌ Ошибка получения статистики: {error_msg}"
 
 async def get_all_bot_users():
     """Получить всех пользователей бота"""

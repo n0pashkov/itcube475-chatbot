@@ -16,6 +16,12 @@ from schedule_parser import schedule_parser
 
 teacher_router = Router()
 
+def escape_markdown(text: str) -> str:
+    """Экранирует специальные символы Markdown"""
+    if not text:
+        return ""
+    return text.replace('_', r'\_').replace('*', r'\*').replace('[', r'\[').replace(']', r'\]').replace('`', r'\`')
+
 # Основные команды для преподавателей
 
 @teacher_router.message(F.text == "🎫 Мои заявки")
@@ -305,7 +311,9 @@ async def get_teacher_statistics(teacher_id: int) -> str:
             return text
             
     except Exception as e:
-        return f"❌ Ошибка получения статистики: {str(e)}"
+        # Экранируем специальные символы Markdown в сообщении об ошибке
+        error_msg = escape_markdown(str(e))
+        return f"❌ Ошибка получения статистики: {error_msg}"
 
 async def get_active_requests_count_for_direction(direction_id: int) -> int:
     """Получить количество активных заявок для направления"""
