@@ -21,6 +21,23 @@ from enhanced_keyboards import get_keyboard_for_chat_type, get_admin_keyboard, g
 
 router = Router()
 
+# Вспомогательная функция для безопасного редактирования сообщений
+async def safe_edit_message(message, text, **kwargs):
+    """
+    Безопасно редактирует сообщение, если не получается - отправляет новое
+    """
+    try:
+        await message.edit_text(text, **kwargs)
+        return True
+    except Exception as e:
+        print(f"Ошибка редактирования сообщения: {e}")
+        try:
+            await message.answer(text, **kwargs)
+            return False
+        except Exception as e2:
+            print(f"Ошибка отправки нового сообщения: {e2}")
+            return False
+
 # Состояния для FSM
 class AdminStates(StatesGroup):
     waiting_for_admin_id = State()
@@ -635,8 +652,9 @@ async def send_feedback_with_attachments(callback: CallbackQuery, state: FSMCont
     if last_message_id:
         try:
             await callback.bot.delete_message(callback.message.chat.id, last_message_id)
-        except:
-            pass  # Игнорируем ошибки удаления
+        except Exception as e:
+            print(f"Ошибка удаления сообщения со статусом прикреплений: {e}")
+            # Игнорируем ошибки удаления
     
     if not direction_id or not feedback_text:
         await callback.answer("❌ Ошибка: данные заявки не найдены", show_alert=True)
@@ -648,40 +666,60 @@ async def send_feedback_with_attachments(callback: CallbackQuery, state: FSMCont
         direction_name = "Администрация"
         db_direction_id = None
     else:
-        direction = await db.get_direction_by_id(direction_id)
-        direction_name = direction[1] if direction else "Неизвестное направление"
-        db_direction_id = direction_id
+        try:
+            direction = await db.get_direction_by_id(direction_id)
+            direction_name = direction[1] if direction else "Неизвестное направление"
+            db_direction_id = direction_id
+        except Exception as e:
+            print(f"Ошибка получения направления {direction_id}: {e}")
+            direction_name = "Неизвестное направление"
+            db_direction_id = direction_id
     
     # Сохраняем заявку в базу
-    message_id = await db.save_feedback_message(
-        callback.from_user.id,
-        callback.from_user.username,
-        callback.from_user.first_name,
-        feedback_text,
-        db_direction_id
-    )
-    
-    # Сохраняем прикрепления
-    for attachment in attachments:
-        await db.save_attachment(
-            message_id,
-            attachment['file_id'],
-            attachment['file_type'],
-            attachment['file_name'],
-            attachment['file_size'],
-            attachment['mime_type']
+    try:
+        message_id = await db.save_feedback_message(
+            callback.from_user.id,
+            callback.from_user.username,
+            callback.from_user.first_name,
+            feedback_text,
+            db_direction_id
         )
+        
+        # Сохраняем прикрепления
+        for attachment in attachments:
+            try:
+                await db.save_attachment(
+                    message_id,
+                    attachment['file_id'],
+                    attachment['file_type'],
+                    attachment['file_name'],
+                    attachment['file_size'],
+                    attachment['mime_type']
+                )
+            except Exception as e:
+                print(f"Ошибка сохранения прикрепления {attachment['file_name']}: {e}")
+                # Продолжаем сохранение других прикреплений
+                
+    except Exception as e:
+        print(f"Ошибка сохранения заявки в базу данных: {e}")
+        await callback.answer("❌ Ошибка сохранения заявки", show_alert=True)
+        await state.clear()
+        return
     
     # Определяем правильную клавиатуру для ответа
-    is_admin = await db.is_admin(callback.from_user.id)
-    is_teacher = await db.is_teacher(callback.from_user.id)
-    
-    if is_admin:
-        keyboard = get_admin_keyboard()
-    elif is_teacher:
-        keyboard = get_teacher_keyboard()
-    else:
-        keyboard = get_main_keyboard()
+    try:
+        is_admin = await db.is_admin(callback.from_user.id)
+        is_teacher = await db.is_teacher(callback.from_user.id)
+        
+        if is_admin:
+            keyboard = get_admin_keyboard()
+        elif is_teacher:
+            keyboard = get_teacher_keyboard()
+        else:
+            keyboard = get_main_keyboard()
+    except Exception as e:
+        print(f"Ошибка определения клавиатуры: {e}")
+        keyboard = get_main_keyboard()  # По умолчанию
     
     # Формируем сообщение пользователю
     attachments_text = ""
@@ -711,23 +749,40 @@ async def send_feedback_with_attachments(callback: CallbackQuery, state: FSMCont
             "❌ До получения ответа создание новых заявок недоступно."
         )
     
-    await callback.message.edit_text(
+    await safe_edit_message(
+        callback.message,
         user_message,
         parse_mode="Markdown"
     )
     
     # Отправляем клавиатуру отдельным сообщением
-    await callback.message.answer(
-        "Используйте кнопки меню для навигации.",
-        reply_markup=keyboard
-    )
+    try:
+        await callback.message.answer(
+            "Используйте кнопки меню для навигации.",
+            reply_markup=keyboard
+        )
+    except Exception as e:
+        print(f"Ошибка отправки клавиатуры: {e}")
+        try:
+            # Пытаемся отправить без клавиатуры
+            await callback.message.answer("Используйте кнопки меню для навигации.")
+        except Exception as e2:
+            print(f"Ошибка отправки сообщения без клавиатуры: {e2}")
     
     # Теперь отправляем уведомления с прикреплениями
-    await send_notifications_with_attachments(callback.bot, message_id, direction_id, direction_name, 
-                                            callback.from_user, feedback_text, attachments)
+    try:
+        await send_notifications_with_attachments(callback.bot, message_id, direction_id, direction_name, 
+                                                callback.from_user, feedback_text, attachments)
+    except Exception as e:
+        print(f"Ошибка отправки уведомлений: {e}")
+        # Продолжаем выполнение, даже если уведомления не отправились
     
     await state.clear()
-    await callback.answer("✅ Заявка отправлена!")
+    try:
+        await callback.answer("✅ Заявка отправлена!")
+    except Exception as e:
+        print(f"Ошибка отправки callback answer: {e}")
+        # Если не удалось отправить callback answer, ничего не делаем
 
 # Дополнительные обработчики кнопок админской панели
 @router.message(F.text == "🎫 Заявки")
@@ -1882,7 +1937,14 @@ async def send_attachments_group(bot, user_id, attachments):
         
         # Отправляем медиагруппу
         if media_group:
-            await bot.send_media_group(user_id, media_group)
+            try:
+                await bot.send_media_group(user_id, media_group)
+            except Exception as e:
+                print(f"Ошибка отправки медиагруппы пользователю {user_id}: {e}")
+                # Если медиагруппа не удалась, отправляем файлы по одному
+                for attachment in attachments:
+                    await send_single_attachment(bot, user_id, attachment)
+                return
         
         # Отправляем voice и video_note отдельно
         for attachment in attachments:
@@ -1890,10 +1952,13 @@ async def send_attachments_group(bot, user_id, attachments):
             file_id = attachment['file_id']
             safe_file_name = attachment['file_name'].replace('*', '\\*').replace('_', '\\_').replace('[', '\\[').replace(']', '\\]').replace('`', '\\`')
             
-            if file_type == "voice":
-                await bot.send_voice(user_id, file_id, caption=f"📎 {safe_file_name}", parse_mode="Markdown")
-            elif file_type == "video_note":
-                await bot.send_video_note(user_id, file_id)
+            try:
+                if file_type == "voice":
+                    await bot.send_voice(user_id, file_id, caption=f"📎 {safe_file_name}", parse_mode="Markdown")
+                elif file_type == "video_note":
+                    await bot.send_video_note(user_id, file_id)
+            except Exception as e:
+                print(f"Ошибка отправки {file_type} пользователю {user_id}: {e}")
                 
     except Exception as e:
         print(f"Ошибка отправки медиагруппы пользователю {user_id}: {e}")
