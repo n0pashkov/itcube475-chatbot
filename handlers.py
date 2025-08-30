@@ -84,7 +84,8 @@ async def bot_added_to_chat(chat_member: ChatMemberUpdated):
         f"Скопируйте ID чата: `{chat.id}` и используйте в админ-панели.\n\n"
         f"💡 *Команды:*\n"
         f"• `/chatid` - показать ID этого чата\n"
-        f"• `/start` - показать главное меню"
+        f"• `/start` - показать главное меню\n"
+        f"• `/menu` - показать главное меню"
     )
     
     try:
@@ -150,7 +151,8 @@ async def cmd_start_in_group(message: Message):
         f"• 📢 Получение уведомлений (для админов)\n\n"
         f"💡 *Полезные команды:*\n"
         f"• `/chatid` - показать ID этого чата\n"
-        f"• `/start` - это сообщение\n\n"
+        f"• `/start` - показать главное меню\n"
+        f"• `/menu` - показать главное меню\n\n"
         f"📢 *Для админов:* Скопируйте ID `{chat.id}` чтобы добавить этот чат в настройки уведомлений."
     )
     
@@ -159,6 +161,31 @@ async def cmd_start_in_group(message: Message):
 # Команда /start (в личных сообщениях)
 @router.message(Command("start"), F.chat.type == "private")
 async def cmd_start_private(message: Message):
+    # Определяем тип чата и роль пользователя
+    chat_type = await ChatBehavior.determine_chat_type(message)
+    
+    # Обновляем информацию о пользователе если он админ или преподаватель
+    if chat_type in [ChatType.PRIVATE_ADMIN, ChatType.PRIVATE_TEACHER]:
+        await db.update_admin_info(
+            message.from_user.id,
+            message.from_user.username,
+            message.from_user.first_name
+        )
+    
+    # Получаем приветственное сообщение для типа чата
+    welcome_text = ChatBehavior.get_welcome_message(
+        chat_type,
+        message.from_user.first_name
+    )
+    
+    # Получаем соответствующую клавиатуру
+    keyboard = get_keyboard_for_chat_type(chat_type, message.from_user.id, None)
+    
+    await message.answer(welcome_text, parse_mode="Markdown", reply_markup=keyboard)
+
+    # Команда /menu (в личных сообщениях)
+@router.message(Command("menu"), F.chat.type == "private")
+async def cmd_menu_private(message: Message):
     # Определяем тип чата и роль пользователя
     chat_type = await ChatBehavior.determine_chat_type(message)
     

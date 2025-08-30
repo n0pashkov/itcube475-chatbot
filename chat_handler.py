@@ -65,6 +65,7 @@ class ChatBehavior:
         commands = {
             # Базовые команды
             'start': True,
+            'menu': True,
             'help': True,
             'chatid': True,
             
