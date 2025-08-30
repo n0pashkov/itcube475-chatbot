@@ -226,6 +226,13 @@ def get_cancel_inline_keyboard():
         InlineKeyboardButton(text="❌ Отмена", callback_data="cancel_feedback")
     ]])
 
+def get_send_feedback_keyboard():
+    """Клавиатура для отправки заявки с прикреплениями"""
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="✅ Отправить заявку", callback_data="send_feedback")],
+        [InlineKeyboardButton(text="❌ Отмена", callback_data="cancel_feedback")]
+    ])
+
 def get_back_to_admin_management_keyboard():
     """Клавиатура с кнопкой назад к управлению админами"""
     return InlineKeyboardMarkup(inline_keyboard=[[

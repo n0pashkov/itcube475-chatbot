@@ -409,6 +409,9 @@ async def process_request_answer(message: Message, state: FSMContext):
         success = await db.close_request(request_id)
         
         if success:
+            # Обновляем статус в админских уведомлениях
+            await db.update_notification_status(message.bot, request_id, "Закрыта (Администратор)", admin_reply)
+            
             await message.answer(
                 f"✅ *Ответ отправлен!*\n\n"
                 f"📝 Заявка #{request_id} закрыта\n"
@@ -441,6 +444,9 @@ async def close_request_callback(callback: CallbackQuery):
     success = await db.close_request(request_id)
     
     if success:
+        # Обновляем статус в админских уведомлениях (без ответа)
+        await db.update_notification_status(callback.bot, request_id, "Закрыта (Администратор)")
+        
         await callback.answer("✅ Заявка закрыта", show_alert=True)
         # Обновляем информацию о заявке
         await show_request_detail(callback)

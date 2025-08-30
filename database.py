@@ -117,6 +117,34 @@ class Database:
                 )
             ''')
             
+            # Таблица для хранения message_id уведомлений в админских чатах
+            await db.execute('''
+                CREATE TABLE IF NOT EXISTS notification_messages (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    feedback_message_id INTEGER NOT NULL,
+                    chat_id INTEGER NOT NULL,
+                    message_id INTEGER NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (feedback_message_id) REFERENCES feedback_messages (id),
+                    UNIQUE(feedback_message_id, chat_id)
+                )
+            ''')
+            
+            # Таблица для хранения прикрепленных файлов к заявкам
+            await db.execute('''
+                CREATE TABLE IF NOT EXISTS attachments (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    feedback_message_id INTEGER NOT NULL,
+                    file_id TEXT NOT NULL,
+                    file_type TEXT NOT NULL,
+                    file_name TEXT,
+                    file_size INTEGER,
+                    mime_type TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (feedback_message_id) REFERENCES feedback_messages (id)
+                )
+            ''')
+            
             await db.commit()
             
             # Добавляем первого администратора
@@ -184,7 +212,7 @@ class Database:
         """Получить сообщение обратной связи по ID"""
         async with aiosqlite.connect(self.db_path) as db:
             cursor = await db.execute('''
-                SELECT id, user_id, username, first_name, message_text, created_at, is_answered, status
+                SELECT id, user_id, username, first_name, message_text, created_at, is_answered, status, direction_id
                 FROM feedback_messages WHERE id = ?
             ''', (message_id,))
             return await cursor.fetchone()
@@ -285,6 +313,108 @@ class Database:
             ''', (chat_id,))
             result = await cursor.fetchone()
             return result is not None
+    
+    # Методы для работы с сообщениями уведомлений
+    async def save_notification_message(self, feedback_message_id: int, chat_id: int, message_id: int):
+        """Сохранить ID сообщения уведомления в админском чате"""
+        async with aiosqlite.connect(self.db_path) as db:
+            await db.execute('''
+                INSERT OR REPLACE INTO notification_messages (feedback_message_id, chat_id, message_id)
+                VALUES (?, ?, ?)
+            ''', (feedback_message_id, chat_id, message_id))
+            await db.commit()
+    
+    async def get_notification_messages(self, feedback_message_id: int):
+        """Получить все сообщения уведомлений для заявки"""
+        async with aiosqlite.connect(self.db_path) as db:
+            cursor = await db.execute('''
+                SELECT chat_id, message_id 
+                FROM notification_messages 
+                WHERE feedback_message_id = ?
+            ''', (feedback_message_id,))
+            return await cursor.fetchall()
+    
+    async def update_notification_status(self, bot, feedback_message_id: int, new_status_text: str, answer_text: str = None):
+        """Обновить статус заявки во всех уведомлениях в админских чатах"""
+        try:
+            # Получаем информацию о заявке для пересоздания текста уведомления
+            feedback_info = await self.get_feedback_message(feedback_message_id)
+            if not feedback_info:
+                return
+                
+            # Получаем все сообщения уведомлений для данной заявки
+            notification_messages = await self.get_notification_messages(feedback_message_id)
+            
+            for chat_id, message_id in notification_messages:
+                try:
+                    # Получаем информацию о направлении заявки
+                    direction_info = None
+                    if len(feedback_info) > 8 and feedback_info[8]:  # direction_id
+                        direction_info = await self.get_direction_by_id(feedback_info[8])
+                    
+                    # Пересоздаем текст уведомления с новым статусом
+                    user_id, username, first_name, message_text = feedback_info[1:5]
+                    
+                    # Формируем базовое уведомление
+                    updated_notification = f"🔔 *Новое обращение от пользователя*\n"
+                    updated_notification += f"👤 *Пользователь:* {first_name or 'Без имени'}"
+                    
+                    if username:
+                        updated_notification += f" (@{username})"
+                    
+                    updated_notification += f"\n🆔 *ID пользователя:* `{user_id}`\n"
+                    updated_notification += f"📝 *Номер заявки:* #{feedback_message_id}\n"
+                    
+                    # Добавляем информацию о направлении
+                    if direction_info:
+                        updated_notification += f"📚 *Направление:* {direction_info[1]}\n"
+                    else:
+                        updated_notification += f"👑 *Адресовано:* Администрация\n"
+                    
+                    updated_notification += f"📋 *Статус:* {new_status_text}\n\n"
+                    updated_notification += f"💬 *Текст заявки:*\n{message_text}\n\n"
+                    
+                    if new_status_text == "На рассмотрении":
+                        updated_notification += "💡 *Для ответа и закрытия заявки:* просто ответьте на это сообщение (reply/свайп)\n"
+                        updated_notification += "✅ После ответа заявка будет автоматически закрыта"
+                    elif answer_text:
+                        # Добавляем ответ если заявка закрыта
+                        updated_notification += f"📝 *Ответ:*\n{answer_text}"
+                    
+                    # Редактируем сообщение
+                    await bot.edit_message_text(
+                        chat_id=chat_id,
+                        message_id=message_id,
+                        text=updated_notification,
+                        parse_mode="Markdown"
+                    )
+                except Exception as e:
+                    print(f"Ошибка обновления уведомления в чате {chat_id}, сообщение {message_id}: {e}")
+                    
+        except Exception as e:
+            print(f"Ошибка обновления статуса уведомлений для заявки {feedback_message_id}: {e}")
+    
+    # Методы для работы с прикреплениями
+    async def save_attachment(self, feedback_message_id: int, file_id: str, file_type: str, 
+                             file_name: str = None, file_size: int = None, mime_type: str = None):
+        """Сохранить информацию о прикрепленном файле"""
+        async with aiosqlite.connect(self.db_path) as db:
+            await db.execute('''
+                INSERT INTO attachments (feedback_message_id, file_id, file_type, file_name, file_size, mime_type)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ''', (feedback_message_id, file_id, file_type, file_name, file_size, mime_type))
+            await db.commit()
+    
+    async def get_attachments(self, feedback_message_id: int):
+        """Получить все прикрепления для заявки"""
+        async with aiosqlite.connect(self.db_path) as db:
+            cursor = await db.execute('''
+                SELECT file_id, file_type, file_name, file_size, mime_type
+                FROM attachments 
+                WHERE feedback_message_id = ?
+                ORDER BY created_at ASC
+            ''', (feedback_message_id,))
+            return await cursor.fetchall()
     
     # Методы для работы с преподавателями
     async def add_teacher(self, user_id: int, username: str = None, first_name: str = None, added_by: int = None):

@@ -13,7 +13,7 @@ from keyboards import (
     get_notification_settings_keyboard, get_back_to_notification_settings_keyboard,
     get_notification_chat_actions_keyboard, get_directions_keyboard,
     get_teacher_management_keyboard, get_back_to_teacher_management_keyboard,
-    get_directions_list_keyboard, get_direction_teachers_keyboard
+    get_directions_list_keyboard, get_direction_teachers_keyboard, get_send_feedback_keyboard
 )
 from schedule_parser import schedule_parser
 from chat_handler import ChatType, ChatBehavior
@@ -29,6 +29,7 @@ class AdminStates(StatesGroup):
 class FeedbackStates(StatesGroup):
     waiting_for_direction = State()
     waiting_for_message = State()
+    waiting_for_attachments = State()
 
 class NotificationStates(StatesGroup):
     waiting_for_chat_id = State()
@@ -342,7 +343,8 @@ async def select_direction_for_feedback(callback: CallbackQuery, state: FSMConte
             f"• Жалобы или предложения\n"
             f"• Общие вопросы по обучению\n"
             f"• Техническая поддержка\n\n"
-            f"💌 Напишите текст заявки следующим сообщением:",
+            f"💌 Напишите текст заявки следующим сообщением.\n"
+            f"📎 Вы также можете прикрепить фото, документы или другие файлы.",
             parse_mode="Markdown",
             reply_markup=get_cancel_inline_keyboard()
         )
@@ -370,7 +372,8 @@ async def select_direction_for_feedback(callback: CallbackQuery, state: FSMConte
             f"• Техническая проблема\n"
             f"• Запрос на консультацию\n"
             f"• Предложение по улучшению\n\n"
-            f"💌 Напишите текст заявки следующим сообщением:",
+            f"💌 Напишите текст заявки следующим сообщением.\n"
+            f"📎 Вы также можете прикрепить фото, документы или другие файлы.",
             parse_mode="Markdown",
             reply_markup=get_cancel_inline_keyboard()
         )
@@ -381,6 +384,17 @@ async def select_direction_for_feedback(callback: CallbackQuery, state: FSMConte
 # Обработка отмены создания заявки
 @router.callback_query(F.data == "cancel_feedback")
 async def cancel_feedback(callback: CallbackQuery, state: FSMContext):
+    # Получаем данные из состояния для удаления сообщения со статусом
+    data = await state.get_data()
+    last_message_id = data.get('last_attachment_message_id')
+    
+    # Удаляем сообщение со статусом прикреплений (если есть)
+    if last_message_id:
+        try:
+            await callback.bot.delete_message(callback.message.chat.id, last_message_id)
+        except:
+            pass  # Игнорируем ошибки удаления
+    
     is_admin = await db.is_admin(callback.from_user.id)
     is_teacher = await db.is_teacher(callback.from_user.id)
     
@@ -398,9 +412,9 @@ async def cancel_feedback(callback: CallbackQuery, state: FSMContext):
     # Отправляем новое сообщение с правильной клавиатурой
     await callback.message.answer("Используйте кнопки меню для навигации.", reply_markup=keyboard)
 
-# Получение сообщения обратной связи
+# Получение текста заявки
 @router.message(StateFilter(FeedbackStates.waiting_for_message))
-async def receive_feedback(message: Message, state: FSMContext):
+async def receive_feedback_text(message: Message, state: FSMContext):
     if message.text == "❌ Отмена":
         is_admin = await db.is_admin(message.from_user.id)
         is_teacher = await db.is_teacher(message.from_user.id)
@@ -438,6 +452,15 @@ async def receive_feedback(message: Message, state: FSMContext):
         await state.clear()
         return
     
+    # Проверяем, что это текстовое сообщение
+    if not message.text:
+        await message.answer(
+            "❌ Пожалуйста, напишите текст заявки.\n"
+            "Файлы можно будет прикрепить на следующем шаге.",
+            reply_markup=get_cancel_inline_keyboard()
+        )
+        return
+    
     # Получаем данные из состояния
     data = await state.get_data()
     direction_id = data.get('direction_id')
@@ -461,29 +484,197 @@ async def receive_feedback(message: Message, state: FSMContext):
         await state.clear()
         return
     
+    # Сохраняем текст заявки в состоянии
+    await state.update_data(feedback_text=message.text)
+    
+    # Переходим к этапу прикрепления файлов
+    direction_name = "Администрация" if direction_id == "admin" else (await db.get_direction_by_id(direction_id))[1]
+    
+    await message.answer(
+        f"💬 *Создание заявки*\n\n"
+        f"📚 *Направление:* {direction_name}\n"
+        f"✅ *Текст заявки получен*\n\n"
+        f"📎 *Шаг 3 (необязательно):* Прикрепите файлы\n\n"
+        f"Вы можете прикрепить:\n"
+        f"• 📷 Фотографии\n"
+        f"• 📄 Документы (PDF, DOC, TXT и др.)\n"
+        f"• 🎵 Аудиофайлы\n"
+        f"• 🎬 Видеофайлы\n\n"
+        f"📤 Отправьте файлы или нажмите *\"Отправить заявку\"* если файлы не нужны.",
+        parse_mode="Markdown",
+        reply_markup=get_send_feedback_keyboard()
+    )
+    
+    await state.set_state(FeedbackStates.waiting_for_attachments)
+
+# Обработчики прикреплений к заявке
+@router.message(StateFilter(FeedbackStates.waiting_for_attachments))
+async def handle_attachments(message: Message, state: FSMContext):
+    # Получаем данные из состояния
+    data = await state.get_data()
+    attachments = data.get('attachments', [])
+    
+    # Обрабатываем разные типы медиа
+    file_info = None
+    file_type = None
+    file_name = None
+    file_size = None
+    mime_type = None
+    
+    if message.photo:
+        # Фото - берем самое большое разрешение
+        photo = message.photo[-1]
+        file_info = photo
+        file_type = "photo"
+        file_size = photo.file_size
+        mime_type = "image/jpeg"
+        file_name = f"photo_{photo.file_id[:8]}.jpg"
+        
+    elif message.document:
+        file_info = message.document
+        file_type = "document"
+        file_name = message.document.file_name or f"document_{message.document.file_id[:8]}"
+        file_size = message.document.file_size
+        mime_type = message.document.mime_type
+        
+    elif message.video:
+        file_info = message.video
+        file_type = "video"
+        file_name = f"video_{message.video.file_id[:8]}.mp4"
+        file_size = message.video.file_size
+        mime_type = message.video.mime_type or "video/mp4"
+        
+    elif message.audio:
+        file_info = message.audio
+        file_type = "audio"
+        file_name = message.audio.file_name or f"audio_{message.audio.file_id[:8]}.mp3"
+        file_size = message.audio.file_size
+        mime_type = message.audio.mime_type or "audio/mpeg"
+        
+    elif message.voice:
+        file_info = message.voice
+        file_type = "voice"
+        file_name = f"voice_{message.voice.file_id[:8]}.ogg"
+        file_size = message.voice.file_size
+        mime_type = message.voice.mime_type or "audio/ogg"
+        
+    elif message.video_note:
+        file_info = message.video_note
+        file_type = "video_note"
+        file_name = f"video_note_{message.video_note.file_id[:8]}.mp4"
+        file_size = message.video_note.file_size
+        mime_type = "video/mp4"
+        
+    else:
+        await message.answer(
+            "❌ Неподдерживаемый тип файла.\n"
+            "Поддерживаются: фото, документы, видео, аудио, голосовые сообщения.",
+            reply_markup=get_send_feedback_keyboard()
+        )
+        return
+    
+    # Добавляем файл к списку прикреплений
+    attachment = {
+        'file_id': file_info.file_id,
+        'file_type': file_type,
+        'file_name': file_name,
+        'file_size': file_size,
+        'mime_type': mime_type
+    }
+    attachments.append(attachment)
+    
+    # Обновляем состояние
+    await state.update_data(attachments=attachments)
+    
+    # Удаляем предыдущее сообщение со статусом (если есть)
+    last_message_id = data.get('last_attachment_message_id')
+    if last_message_id:
+        try:
+            await message.bot.delete_message(message.chat.id, last_message_id)
+        except:
+            pass  # Игнорируем ошибки удаления
+    
+    # Создаем новое сообщение со статусом
+    status_message = await message.answer(
+        f"📎 *Прикрепленные файлы:* {len(attachments)} файл(ов)\n\n"
+        f"📋 *Список файлов:*\n",
+        parse_mode="Markdown",
+        reply_markup=get_send_feedback_keyboard()
+    )
+    
+    # Добавляем список файлов
+    file_list = ""
+    for i, att in enumerate(attachments, 1):
+        safe_name = escape_markdown(att['file_name'])
+        size_mb = (att['file_size'] / (1024 * 1024)) if att['file_size'] else 0
+        file_list += f"{i}. `{safe_name}` ({size_mb:.2f} МБ)\n"
+    
+    # Обновляем сообщение с полным списком
+    await status_message.edit_text(
+        f"📎 *Прикрепленные файлы:* {len(attachments)} файл(ов)\n\n"
+        f"📋 *Список файлов:*\n{file_list}\n"
+        f"📤 Можете прикрепить еще файлы или отправить заявку.",
+        parse_mode="Markdown",
+        reply_markup=get_send_feedback_keyboard()
+    )
+    
+    # Сохраняем ID нового сообщения
+    await state.update_data(last_attachment_message_id=status_message.message_id)
+
+# Обработчик кнопки "Отправить заявку"
+@router.callback_query(F.data == "send_feedback")
+async def send_feedback_with_attachments(callback: CallbackQuery, state: FSMContext):
+    # Получаем все данные из состояния
+    data = await state.get_data()
+    direction_id = data.get('direction_id')
+    feedback_text = data.get('feedback_text')
+    attachments = data.get('attachments', [])
+    
+    # Удаляем сообщение со статусом прикреплений (если есть)
+    last_message_id = data.get('last_attachment_message_id')
+    if last_message_id:
+        try:
+            await callback.bot.delete_message(callback.message.chat.id, last_message_id)
+        except:
+            pass  # Игнорируем ошибки удаления
+    
+    if not direction_id or not feedback_text:
+        await callback.answer("❌ Ошибка: данные заявки не найдены", show_alert=True)
+        await state.clear()
+        return
+    
     # Обрабатываем направление
     if direction_id == "admin":
         direction_name = "Администрация"
-        # Для администрации сохраняем с direction_id = None
         db_direction_id = None
     else:
-        # Получаем название направления
         direction = await db.get_direction_by_id(direction_id)
         direction_name = direction[1] if direction else "Неизвестное направление"
         db_direction_id = direction_id
     
     # Сохраняем заявку в базу
     message_id = await db.save_feedback_message(
-        message.from_user.id,
-        message.from_user.username,
-        message.from_user.first_name,
-        message.text,
+        callback.from_user.id,
+        callback.from_user.username,
+        callback.from_user.first_name,
+        feedback_text,
         db_direction_id
     )
     
-    # Уведомляем пользователя - определяем правильную клавиатуру
-    is_admin = await db.is_admin(message.from_user.id)
-    is_teacher = await db.is_teacher(message.from_user.id)
+    # Сохраняем прикрепления
+    for attachment in attachments:
+        await db.save_attachment(
+            message_id,
+            attachment['file_id'],
+            attachment['file_type'],
+            attachment['file_name'],
+            attachment['file_size'],
+            attachment['mime_type']
+        )
+    
+    # Определяем правильную клавиатуру для ответа
+    is_admin = await db.is_admin(callback.from_user.id)
+    is_teacher = await db.is_teacher(callback.from_user.id)
     
     if is_admin:
         keyboard = get_admin_keyboard()
@@ -492,14 +683,18 @@ async def receive_feedback(message: Message, state: FSMContext):
     else:
         keyboard = get_main_keyboard()
     
-    # Формируем сообщение пользователю в зависимости от типа заявки
+    # Формируем сообщение пользователю
+    attachments_text = ""
+    if attachments:
+        attachments_text = f"\n📎 *Прикреплено файлов:* {len(attachments)}"
+    
     if direction_id == "admin":
         user_message = (
             f"✅ *Заявка создана успешно!*\n\n"
             f"📝 *Номер заявки:* #{message_id}\n"
             f"👑 *Адресовано:* {direction_name}\n"
-            f"📋 *Статус:* На рассмотрении\n\n"
-            f"💬 *Ваша заявка:*\n{message.text}\n\n"
+            f"📋 *Статус:* На рассмотрении{attachments_text}\n\n"
+            f"💬 *Ваша заявка:*\n{feedback_text}\n\n"
             "⏳ Ваша заявка направлена администрации.\n"
             "📱 Ответ придёт в ближайшее время.\n"
             "❌ До получения ответа создание новых заявок недоступно."
@@ -509,78 +704,30 @@ async def receive_feedback(message: Message, state: FSMContext):
             f"✅ *Заявка создана успешно!*\n\n"
             f"📝 *Номер заявки:* #{message_id}\n"
             f"📚 *Направление:* {direction_name}\n"
-            f"📋 *Статус:* На рассмотрении\n\n"
-            f"💬 *Ваша заявка:*\n{message.text}\n\n"
+            f"📋 *Статус:* На рассмотрении{attachments_text}\n\n"
+            f"💬 *Ваша заявка:*\n{feedback_text}\n\n"
             "⏳ Ваша заявка направлена преподавателю и администрации.\n"
             "📱 Ответ придёт в ближайшее время.\n"
             "❌ До получения ответа создание новых заявок недоступно."
         )
     
-    await message.answer(
+    await callback.message.edit_text(
         user_message,
-        parse_mode="Markdown",
+        parse_mode="Markdown"
+    )
+    
+    # Отправляем клавиатуру отдельным сообщением
+    await callback.message.answer(
+        "Используйте кнопки меню для навигации.",
         reply_markup=keyboard
     )
     
-    # Формируем базовый текст уведомления
-    base_notification = (
-        f"🎫 *Новая заявка*\n\n"
-        f"👤 *От:* {message.from_user.first_name}"
-    )
-    if message.from_user.username:
-        base_notification += f" (@{message.from_user.username})"
-    
-    base_notification += f"\n🆔 *ID пользователя:* `{message.from_user.id}`\n"
-    base_notification += f"📝 *Номер заявки:* #{message_id}\n"
-    
-    # Добавляем информацию о направлении в зависимости от типа заявки
-    if direction_id == "admin":
-        base_notification += f"👑 *Адресовано:* {direction_name}\n"
-    else:
-        base_notification += f"📚 *Направление:* {direction_name}\n"
-    
-    base_notification += f"📋 *Статус:* На рассмотрении\n\n"
-    base_notification += f"💬 *Текст заявки:*\n{message.text}\n\n"
-    base_notification += "💡 *Для ответа и закрытия заявки:* просто ответьте на это сообщение (reply/свайп)\n"
-    base_notification += "✅ После ответа заявка будет автоматически закрыта"
-    
-    # Отправляем преподавателям только если это НЕ заявка для администрации
-    if direction_id != "admin":
-        # Получаем преподавателей для данного направления
-        teachers = await db.get_teachers_for_direction(direction_id)
-        
-        if teachers:
-            teacher_text = f"👨‍🏫 *Заявка по вашему направлению*\n\n" + base_notification
-            for teacher_id, teacher_username, teacher_first_name in teachers:
-                try:
-                    await message.bot.send_message(teacher_id, teacher_text, parse_mode="Markdown")
-                except Exception as e:
-                    print(f"Ошибка отправки преподавателю {teacher_id}: {e}")
-    
-    # Отправляем администраторам
-    if direction_id == "admin":
-        admin_text = f"👑 *Заявка для администрации*\n\n" + base_notification
-    else:
-        admin_text = f"👑 *Заявка для администрации* (дубликат)\n\n" + base_notification
-    
-    # Отправляем в настроенные чаты для админов
-    notification_chats = await db.get_notification_chats()
-    if notification_chats:
-        for chat_id, chat_title, chat_type in notification_chats:
-            try:
-                await message.bot.send_message(chat_id, admin_text, parse_mode="Markdown")
-            except Exception as e:
-                print(f"Ошибка отправки в чат {chat_id} ({chat_title}): {e}")
-    else:
-        # Если чаты не настроены - отправляем всем админам в ЛС
-        admins = await db.get_all_admins()
-        for admin_id, _, _ in admins:
-            try:
-                await message.bot.send_message(admin_id, admin_text, parse_mode="Markdown")
-            except Exception as e:
-                print(f"Ошибка отправки админу {admin_id}: {e}")
+    # Теперь отправляем уведомления с прикреплениями
+    await send_notifications_with_attachments(callback.bot, message_id, direction_id, direction_name, 
+                                            callback.from_user, feedback_text, attachments)
     
     await state.clear()
+    await callback.answer("✅ Заявка отправлена!")
 
 # Дополнительные обработчики кнопок админской панели
 @router.message(F.text == "🎫 Заявки")
@@ -601,17 +748,10 @@ async def admin_requests_button(message: Message):
 @router.message(F.text == "📊 Статистика")
 async def admin_statistics_button(message: Message):
     """Обработка кнопки Статистика"""
-    print(f"[DEBUG] admin_statistics_button (handlers.py) вызвана пользователем {message.from_user.id}")
-    
-    is_admin = await db.is_admin(message.from_user.id)
-    print(f"[DEBUG] is_admin в handlers.py для пользователя {message.from_user.id}: {is_admin}")
-    
-    if not is_admin:
-        print(f"[DEBUG] handlers.py отправляет сообщение об отказе в доступе")
+    if not await db.is_admin(message.from_user.id):
         await message.answer("❌ У вас нет прав для выполнения этой команды.")
         return
     
-    print(f"[DEBUG] handlers.py переадресует на admin_handlers")
     # Переадресуем на обработчик из admin_handlers
     from admin_handlers import admin_statistics_menu
     await admin_statistics_menu(message)
@@ -1552,6 +1692,9 @@ async def handle_text_messages(message: Message):
                         await message.bot.send_message(user_id, user_reply, parse_mode="Markdown")
                         await db.mark_message_answered(message_id, message.from_user.id, reply_content)
                         
+                        # Обновляем статус в админских уведомлениях
+                        await db.update_notification_status(message.bot, message_id, f"Закрыта ({responder_role})", reply_content)
+                        
                         # Определяем правильную клавиатуру для отвечающего
                         if is_admin:
                             response_keyboard = get_admin_keyboard()
@@ -1591,33 +1734,195 @@ async def handle_text_messages(message: Message):
                         f"❌ Заявка #{message_id} не найдена.",
                         reply_markup=not_found_keyboard
                     )
-            else:
-                # Определяем правильную клавиатуру для отвечающего
-                if is_admin:
-                    no_id_keyboard = get_admin_keyboard()
-                elif is_teacher:
-                    no_id_keyboard = get_teacher_keyboard()
-                else:
-                    no_id_keyboard = get_admin_keyboard()  # по умолчанию
-                
-                await message.answer(
-                    "❌ Не удалось найти номер сообщения для ответа.",
-                    reply_markup=no_id_keyboard
-                )
-        else:
-            # Обычный пользователь - показываем обычную клавиатуру
-            chat_type = await ChatBehavior.determine_chat_type(message)
-            no_rights_keyboard = get_keyboard_for_chat_type(chat_type, message.from_user.id, None)
-            
-            await message.answer(
-                "❌ У вас нет прав для ответа на сообщения. Только администраторы и преподаватели могут отвечать на заявки.",
-                reply_markup=no_rights_keyboard
-            )
+
+def escape_markdown(text):
+    """Экранирует специальные символы для Markdown"""
+    if not text:
+        return ""
+    return text.replace('*', '\\*').replace('_', '\\_').replace('[', '\\[').replace(']', '\\]').replace('`', '\\`')
+
+# Функция для отправки уведомлений с прикреплениями
+async def send_notifications_with_attachments(bot, message_id, direction_id, direction_name, user, feedback_text, attachments):
+    """Отправляет уведомления о новой заявке с прикреплениями"""
+    
+    # Формируем базовый текст уведомления
+    base_notification = (
+        f"🎫 *Новая заявка*\n\n"
+        f"👤 *От:* {user.first_name}"
+    )
+    if user.username:
+        base_notification += f" (@{user.username})"
+    
+    base_notification += f"\n🆔 *ID пользователя:* `{user.id}`\n"
+    base_notification += f"📝 *Номер заявки:* #{message_id}\n"
+    
+    # Добавляем информацию о направлении
+    if direction_id == "admin":
+        base_notification += f"👑 *Адресовано:* {direction_name}\n"
     else:
-        # Обычное сообщение - показываем меню
-        chat_type = await ChatBehavior.determine_chat_type(message)
-        keyboard = get_keyboard_for_chat_type(chat_type, message.from_user.id, None)
-        await message.answer(
-            "Используйте кнопки меню для навигации по боту.",
-            reply_markup=keyboard
-        )
+        base_notification += f"📚 *Направление:* {direction_name}\n"
+    
+    base_notification += f"📋 *Статус:* На рассмотрении\n"
+    
+    # Добавляем информацию о прикреплениях
+    if attachments:
+        base_notification += f"📎 *Прикреплено файлов:* {len(attachments)}\n"
+        # Добавляем список файлов
+        for i, attachment in enumerate(attachments[:3]):  # Показываем первые 3 файла
+            safe_name = escape_markdown(attachment['file_name'])
+            base_notification += f"   • `{safe_name}`\n"
+        if len(attachments) > 3:
+            base_notification += f"   • ... и еще {len(attachments) - 3} файл(ов)\n"
+    
+    base_notification += f"\n💬 *Текст заявки:*\n{escape_markdown(feedback_text)}\n\n"
+    base_notification += "💡 *Для ответа и закрытия заявки:* просто ответьте на это сообщение (reply/свайп)\n"
+    base_notification += "✅ После ответа заявка будет автоматически закрыта"
+    
+    # Отправляем преподавателям только если это НЕ заявка для администрации
+    if direction_id != "admin":
+        teachers = await db.get_teachers_for_direction(direction_id)
+        
+        if teachers:
+            teacher_text = f"👨‍🏫 *Заявка по вашему направлению*\n\n" + base_notification
+            for teacher_id, teacher_username, teacher_first_name in teachers:
+                try:
+                    # Отправляем текст уведомления
+                    await bot.send_message(teacher_id, teacher_text, parse_mode="Markdown")
+                    
+                    # Отправляем прикрепления
+                    await send_attachments_group(bot, teacher_id, attachments)
+                        
+                except Exception as e:
+                    print(f"Ошибка отправки преподавателю {teacher_id}: {e}")
+    
+    # Отправляем администраторам
+    if direction_id == "admin":
+        admin_text = f"👑 *Заявка для администрации*\n\n" + base_notification
+    else:
+        admin_text = f"👑 *Заявка для администрации* (дубликат)\n\n" + base_notification
+    
+    # Отправляем в настроенные чаты для админов
+    notification_chats = await db.get_notification_chats()
+    if notification_chats:
+        for chat_id, chat_title, chat_type in notification_chats:
+            try:
+                # Отправляем текст уведомления
+                sent_message = await bot.send_message(chat_id, admin_text, parse_mode="Markdown")
+                # Сохраняем message_id отправленного уведомления
+                await db.save_notification_message(message_id, chat_id, sent_message.message_id)
+                
+                # Отправляем прикрепления
+                await send_attachments_group(bot, chat_id, attachments)
+                    
+            except Exception as e:
+                print(f"Ошибка отправки в чат {chat_id} ({chat_title}): {e}")
+    else:
+        # Если чаты не настроены - отправляем всем админам в ЛС
+        admins = await db.get_all_admins()
+        for admin_id, _, _ in admins:
+            try:
+                # Отправляем текст уведомления
+                sent_message = await bot.send_message(admin_id, admin_text, parse_mode="Markdown")
+                # Сохраняем message_id отправленного уведомления
+                await db.save_notification_message(message_id, admin_id, sent_message.message_id)
+                
+                # Отправляем прикрепления
+                await send_attachments_group(bot, admin_id, attachments)
+                    
+            except Exception as e:
+                print(f"Ошибка отправки админу {admin_id}: {e}")
+
+async def send_attachments_group(bot, user_id, attachments):
+    """Отправляет группу прикрепленных файлов одним сообщением"""
+    if not attachments:
+        return
+        
+    try:
+        from aiogram.types import InputMediaPhoto, InputMediaDocument, InputMediaVideo, InputMediaAudio
+        
+        media_group = []
+        
+        for i, attachment in enumerate(attachments):
+            file_type = attachment['file_type']
+            file_id = attachment['file_id']
+            safe_file_name = attachment['file_name'].replace('*', '\\*').replace('_', '\\_').replace('[', '\\[').replace(']', '\\]').replace('`', '\\`')
+            
+            # Добавляем caption только к первому файлу
+            caption = f"📎 Прикрепленные файлы к заявке:\n" if i == 0 else None
+            
+            if file_type == "photo":
+                media_item = InputMediaPhoto(
+                    media=file_id,
+                    caption=caption,
+                    parse_mode="Markdown"
+                )
+            elif file_type == "document":
+                media_item = InputMediaDocument(
+                    media=file_id,
+                    caption=caption,
+                    parse_mode="Markdown"
+                )
+            elif file_type == "video":
+                media_item = InputMediaVideo(
+                    media=file_id,
+                    caption=caption,
+                    parse_mode="Markdown"
+                )
+            elif file_type == "audio":
+                media_item = InputMediaAudio(
+                    media=file_id,
+                    caption=caption,
+                    parse_mode="Markdown"
+                )
+            else:
+                # Для voice и video_note отправляем отдельно, так как они не поддерживаются в медиагруппе
+                continue
+                
+            media_group.append(media_item)
+        
+        # Отправляем медиагруппу
+        if media_group:
+            await bot.send_media_group(user_id, media_group)
+        
+        # Отправляем voice и video_note отдельно
+        for attachment in attachments:
+            file_type = attachment['file_type']
+            file_id = attachment['file_id']
+            safe_file_name = attachment['file_name'].replace('*', '\\*').replace('_', '\\_').replace('[', '\\[').replace(']', '\\]').replace('`', '\\`')
+            
+            if file_type == "voice":
+                await bot.send_voice(user_id, file_id, caption=f"📎 {safe_file_name}", parse_mode="Markdown")
+            elif file_type == "video_note":
+                await bot.send_video_note(user_id, file_id)
+                
+    except Exception as e:
+        print(f"Ошибка отправки медиагруппы пользователю {user_id}: {e}")
+        # Если медиагруппа не удалась, отправляем файлы по одному
+        for attachment in attachments:
+            await send_single_attachment(bot, user_id, attachment)
+
+async def send_single_attachment(bot, user_id, attachment):
+    """Отправляет один прикрепленный файл пользователю"""
+    try:
+        file_type = attachment['file_type']
+        file_id = attachment['file_id']
+        
+        # Экранируем специальные символы в названии файла
+        safe_file_name = attachment['file_name'].replace('*', '\\*').replace('_', '\\_').replace('[', '\\[').replace(']', '\\]').replace('`', '\\`')
+        caption = f"📎 {safe_file_name}"
+        
+        if file_type == "photo":
+            await bot.send_photo(user_id, file_id, caption=caption, parse_mode="Markdown")
+        elif file_type == "document":
+            await bot.send_document(user_id, file_id, caption=caption, parse_mode="Markdown")
+        elif file_type == "video":
+            await bot.send_video(user_id, file_id, caption=caption, parse_mode="Markdown")
+        elif file_type == "audio":
+            await bot.send_audio(user_id, file_id, caption=caption, parse_mode="Markdown")
+        elif file_type == "voice":
+            await bot.send_voice(user_id, file_id, caption=caption, parse_mode="Markdown")
+        elif file_type == "video_note":
+            await bot.send_video_note(user_id, file_id)
+            
+    except Exception as e:
+        print(f"Ошибка отправки прикрепления {attachment['file_name']} пользователю {user_id}: {e}")

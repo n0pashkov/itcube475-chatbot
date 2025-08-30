@@ -727,6 +727,9 @@ async def handle_admin_reply_in_group(message: Message):
         await message.bot.send_message(user_id, user_reply, parse_mode="Markdown")
         await db.mark_message_answered(message_id, message.from_user.id, reply_content)
         
+        # Обновляем статус в админских уведомлениях
+        await db.update_notification_status(message.bot, message_id, f"Закрыта ({responder_role})", reply_content)
+        
         await message.reply(
             f"✅ Ответ на заявку #{message_id} отправлен! Заявка закрыта."
         )
