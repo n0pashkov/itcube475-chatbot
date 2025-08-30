@@ -56,7 +56,12 @@ async def group_start_command(message: Message):
     else:
         keyboard = get_public_group_keyboard(bot_username)
     
-    await message.answer(welcome_text, parse_mode="Markdown", reply_markup=keyboard)
+    # message.answer() тоже автоматически использует message_thread_id из исходного сообщения
+    await message.answer(
+        welcome_text, 
+        parse_mode="Markdown", 
+        reply_markup=keyboard
+    )
 
 @group_router.callback_query(F.data == "schedule")
 async def schedule_callback(callback: CallbackQuery):
@@ -622,8 +627,8 @@ def get_back_to_quick_schedule_keyboard():
     builder.add(InlineKeyboardButton(text="⬅️ Назад", callback_data="quick_schedule"))
     return builder.as_markup()
 
-# Обработка команды /menu в группах
-@group_router.message(F.text == "/menu", F.chat.type.in_({"group", "supergroup"}))
+# Обработка команды /menu в группах (включая /menu@botusername)
+@group_router.message(Command("menu"), F.chat.type.in_({"group", "supergroup"}))
 async def handle_menu_command(message: Message):
     """Обработка команды /menu в группах"""
     chat_type = await ChatBehavior.determine_chat_type(message)
@@ -645,7 +650,12 @@ async def handle_menu_command(message: Message):
     else:
         keyboard = get_public_group_keyboard(bot_username)
     
-    await message.reply(welcome_text, parse_mode="Markdown", reply_markup=keyboard)
+    # message.reply() автоматически использует message_thread_id из исходного сообщения
+    await message.reply(
+        welcome_text, 
+        parse_mode="Markdown", 
+        reply_markup=keyboard
+    )
 
 # Обработка ответов администраторов на заявки в групповых чатах
 @group_router.message(F.reply_to_message & F.chat.type.in_({"group", "supergroup"}))
@@ -752,6 +762,8 @@ async def handle_bot_mention(message: Message):
     
     if f"@{bot_username}" in message.text.lower():
         chat_type = await ChatBehavior.determine_chat_type(message)
+        
+        # message.reply() автоматически использует message_thread_id
         
         # Простые ответы на упоминания
         if "расписание" in message.text.lower():

@@ -104,6 +104,9 @@ async def show_chat_id(message: Message):
     """Показать ID текущего чата"""
     chat = message.chat
     
+    # Поддержка топиков (форумов)
+    message_thread_id = getattr(message, 'message_thread_id', None)
+    
     if chat.type == 'private':
         text = (
             f"💬 *Личный чат*\n\n"
@@ -119,15 +122,21 @@ async def show_chat_id(message: Message):
             'channel': 'Канал'
         }.get(chat.type, chat.type)
         
+        topic_info = ""
+        if message_thread_id:
+            topic_info = f"📍 *ID топика:* `{message_thread_id}`\n"
+        
         text = (
             f"📋 *{chat_type_ru}: {chat_title}*\n\n"
             f"🆔 *ID чата:* `{chat.id}`\n"
+            f"{topic_info}"
             f"📱 *Тип:* {chat_type_ru}\n\n"
             f"📢 *Для добавления в уведомления:*\n"
             f"Скопируйте ID: `{chat.id}`\n"
             f"И используйте в админ-панели бота."
         )
     
+    # message.reply() автоматически использует message_thread_id из исходного сообщения
     await message.reply(text, parse_mode="Markdown")
 
 # Обработка команды /start в группах (покажет ID)
@@ -141,10 +150,17 @@ async def cmd_start_in_group(message: Message):
         'supergroup': 'Супергруппа'
     }.get(chat.type, chat.type)
     
+    # Поддержка топиков (форумов)
+    message_thread_id = getattr(message, 'message_thread_id', None)
+    topic_info = ""
+    if message_thread_id:
+        topic_info = f"📍 *Топик ID:* `{message_thread_id}`\n"
+    
     text = (
         f"👋 Привет! Я бот IT-Cube!\n\n"
         f"📋 *{chat_type_ru}: {chat_title}*\n"
-        f"🆔 *ID чата:* `{chat.id}`\n\n"
+        f"🆔 *ID чата:* `{chat.id}`\n"
+        f"{topic_info}"
         f"🤖 Основные функции:\n"
         f"• 📅 Просмотр расписания IT-Cube\n"
         f"• 💬 Обратная связь с администрацией\n"
@@ -156,6 +172,7 @@ async def cmd_start_in_group(message: Message):
         f"📢 *Для админов:* Скопируйте ID `{chat.id}` чтобы добавить этот чат в настройки уведомлений."
     )
     
+    # message.reply() автоматически использует message_thread_id из исходного сообщения
     await message.reply(text, parse_mode="Markdown")
 
 # Команда /start (в личных сообщениях)
