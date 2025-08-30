@@ -203,6 +203,7 @@ def get_settings_keyboard(chat_type: ChatType):
         builder.add(InlineKeyboardButton(text="📢 Настройка уведомлений", callback_data="settings_notifications"))
         builder.add(InlineKeyboardButton(text="🎫 Настройки заявок", callback_data="settings_requests"))
         builder.add(InlineKeyboardButton(text="📅 Настройки расписания", callback_data="settings_schedule"))
+        builder.add(InlineKeyboardButton(text="🕐 Рабочие часы обратной связи", callback_data="settings_working_hours"))
         builder.adjust(1)
     
     elif chat_type == ChatType.ADMIN_GROUP:
@@ -247,6 +248,54 @@ def get_help_keyboard(chat_type: ChatType):
     elif chat_type == ChatType.PRIVATE_TEACHER:
         builder.add(InlineKeyboardButton(text="🎫 Работа с заявками", callback_data="help_teacher_requests"))
         builder.add(InlineKeyboardButton(text="📚 Управление направлениями", callback_data="help_teacher_directions"))
+    
+    builder.adjust(1)
+    return builder.as_markup()
+
+def get_working_hours_keyboard():
+    """Клавиатура управления рабочими часами"""
+    builder = InlineKeyboardBuilder()
+    
+    days = [
+        ("Понедельник", 0),
+        ("Вторник", 1),
+        ("Среда", 2),
+        ("Четверг", 3),
+        ("Пятница", 4),
+        ("Суббота", 5),
+        ("Воскресенье", 6)
+    ]
+    
+    for day_name, day_num in days:
+        builder.add(InlineKeyboardButton(text=f"📅 {day_name}", callback_data=f"working_hours_day:{day_num}"))
+    
+    builder.add(InlineKeyboardButton(text="📋 Показать все часы", callback_data="working_hours_show_all"))
+    builder.add(InlineKeyboardButton(text="⬅️ Назад к настройкам", callback_data="back_to_settings"))
+    
+    builder.adjust(1)
+    return builder.as_markup()
+
+def get_day_working_hours_keyboard(day_num: int, day_name: str, current_hours=None):
+    """Клавиатура для настройки конкретного дня"""
+    builder = InlineKeyboardBuilder()
+    
+    if current_hours:
+        start_time, end_time, is_active = current_hours
+        status = "✅ Включен" if is_active else "❌ Отключен"
+        builder.add(InlineKeyboardButton(
+            text=f"🕐 {day_name}: {start_time} - {end_time} ({status})", 
+            callback_data="no_action"
+        ))
+        builder.add(InlineKeyboardButton(text="✏️ Изменить время", callback_data=f"working_hours_edit:{day_num}"))
+        builder.add(InlineKeyboardButton(
+            text="🔄 Включить" if not is_active else "⏸️ Отключить", 
+            callback_data=f"working_hours_toggle:{day_num}"
+        ))
+        builder.add(InlineKeyboardButton(text="🗑️ Удалить", callback_data=f"working_hours_delete:{day_num}"))
+    else:
+        builder.add(InlineKeyboardButton(text=f"➕ Добавить часы для {day_name}", callback_data=f"working_hours_add:{day_num}"))
+    
+    builder.add(InlineKeyboardButton(text="⬅️ Назад к дням", callback_data="working_hours_back_to_days"))
     
     builder.adjust(1)
     return builder.as_markup()

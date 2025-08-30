@@ -17,7 +17,8 @@ from chat_handler import ChatType, ChatBehavior, require_permission
 from enhanced_keyboards import (
     get_admin_requests_keyboard, get_statistics_keyboard, 
     get_settings_keyboard, get_quick_actions_for_request,
-    get_request_detail_keyboard
+    get_request_detail_keyboard, get_working_hours_keyboard,
+    get_day_working_hours_keyboard
 )
 from keyboards import (
     get_admin_management_keyboard, get_teacher_management_keyboard,
@@ -38,6 +39,7 @@ class AdminStates(StatesGroup):
     waiting_for_broadcast_message = State()
     waiting_for_request_reply = State()
     waiting_for_request_answer = State()
+    waiting_for_working_hours_time = State()
 
 # Основные админские команды
 
@@ -590,6 +592,306 @@ async def back_to_settings_callback(callback: CallbackQuery):
         text,
         parse_mode="Markdown",
         reply_markup=get_settings_keyboard(chat_type)
+    )
+    await callback.answer()
+
+# Обработчики рабочих часов обратной связи
+
+@admin_router.callback_query(F.data == "settings_working_hours")
+async def settings_working_hours_callback(callback: CallbackQuery):
+    """Настройки рабочих часов обратной связи"""
+    if not await db.is_admin(callback.from_user.id):
+        await callback.answer("❌ У вас нет прав для выполнения этой команды.", show_alert=True)
+        return
+    
+    text = (
+        "🕐 *Рабочие часы обратной связи*\n\n"
+        "Здесь вы можете настроить время, когда пользователи могут создавать заявки.\n\n"
+        "Выберите день недели для настройки:"
+    )
+    
+    await callback.message.edit_text(
+        text,
+        parse_mode="Markdown",
+        reply_markup=get_working_hours_keyboard()
+    )
+    await callback.answer()
+
+@admin_router.callback_query(F.data == "working_hours_back_to_days")
+async def working_hours_back_to_days_callback(callback: CallbackQuery):
+    """Возврат к списку дней"""
+    if not await db.is_admin(callback.from_user.id):
+        await callback.answer("❌ У вас нет прав для выполнения этой команды.", show_alert=True)
+        return
+    
+    text = (
+        "🕐 *Рабочие часы обратной связи*\n\n"
+        "Здесь вы можете настроить время, когда пользователи могут создавать заявки.\n\n"
+        "Выберите день недели для настройки:"
+    )
+    
+    await callback.message.edit_text(
+        text,
+        parse_mode="Markdown",
+        reply_markup=get_working_hours_keyboard()
+    )
+    await callback.answer()
+
+@admin_router.callback_query(F.data.startswith("working_hours_day:"))
+async def working_hours_day_callback(callback: CallbackQuery):
+    """Настройка конкретного дня недели"""
+    if not await db.is_admin(callback.from_user.id):
+        await callback.answer("❌ У вас нет прав для выполнения этой команды.", show_alert=True)
+        return
+    
+    day_num = int(callback.data.split(":")[1])
+    days = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"]
+    day_name = days[day_num]
+    
+    # Получаем текущие настройки для этого дня
+    working_hours = await db.get_working_hours()
+    current_hours = None
+    
+    for hours in working_hours:
+        if hours[0] == day_num:
+            current_hours = hours[1:]  # start_time, end_time, is_active
+            break
+    
+    text = f"🕐 *Настройка рабочих часов для {day_name}*\n\n"
+    
+    if current_hours:
+        start_time, end_time, is_active = current_hours
+        status = "✅ Включен" if is_active else "❌ Отключен"
+        text += f"Текущие настройки:\n🕐 {start_time} - {end_time}\n{status}"
+    else:
+        text += "Настройки не заданы"
+    
+    await callback.message.edit_text(
+        text,
+        parse_mode="Markdown",
+        reply_markup=get_day_working_hours_keyboard(day_num, day_name, current_hours)
+    )
+    await callback.answer()
+
+@admin_router.callback_query(F.data.startswith("working_hours_add:"))
+async def working_hours_add_callback(callback: CallbackQuery, state: FSMContext):
+    """Добавление рабочих часов"""
+    if not await db.is_admin(callback.from_user.id):
+        await callback.answer("❌ У вас нет прав для выполнения этой команды.", show_alert=True)
+        return
+    
+    day_num = int(callback.data.split(":")[1])
+    days = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"]
+    day_name = days[day_num]
+    
+    await state.update_data(working_hours_day=day_num, working_hours_day_name=day_name)
+    
+    text = (
+        f"🕐 *Добавление рабочих часов для {day_name}*\n\n"
+        "Введите время в формате:\n"
+        "**HH:MM-HH:MM**\n\n"
+        "Например:\n"
+        "• 09:00-18:00\n"
+        "• 15:00-20:00\n\n"
+        "Для отмены отправьте /cancel"
+    )
+    
+    await callback.message.edit_text(text, parse_mode="Markdown")
+    await state.set_state(AdminStates.waiting_for_working_hours_time)
+    await callback.answer()
+
+@admin_router.callback_query(F.data.startswith("working_hours_edit:"))
+async def working_hours_edit_callback(callback: CallbackQuery, state: FSMContext):
+    """Редактирование рабочих часов"""
+    if not await db.is_admin(callback.from_user.id):
+        await callback.answer("❌ У вас нет прав для выполнения этой команды.", show_alert=True)
+        return
+    
+    day_num = int(callback.data.split(":")[1])
+    days = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"]
+    day_name = days[day_num]
+    
+    await state.update_data(working_hours_day=day_num, working_hours_day_name=day_name)
+    
+    text = (
+        f"🕐 *Редактирование рабочих часов для {day_name}*\n\n"
+        "Введите новое время в формате:\n"
+        "**HH:MM-HH:MM**\n\n"
+        "Например:\n"
+        "• 09:00-18:00\n"
+        "• 15:00-20:00\n\n"
+        "Для отмены отправьте /cancel"
+    )
+    
+    await callback.message.edit_text(text, parse_mode="Markdown")
+    await state.set_state(AdminStates.waiting_for_working_hours_time)
+    await callback.answer()
+
+@admin_router.message(StateFilter(AdminStates.waiting_for_working_hours_time))
+async def process_working_hours_time(message: Message, state: FSMContext):
+    """Обработка введенного времени"""
+    if message.text == "/cancel":
+        await message.answer("❌ Настройка отменена.")
+        await state.clear()
+        return
+    
+    # Парсим время
+    try:
+        time_range = message.text.strip()
+        if "-" not in time_range:
+            raise ValueError("Неверный формат")
+        
+        start_time, end_time = time_range.split("-")
+        start_time = start_time.strip()
+        end_time = end_time.strip()
+        
+        # Проверяем формат времени
+        from datetime import datetime
+        datetime.strptime(start_time, "%H:%M")
+        datetime.strptime(end_time, "%H:%M")
+        
+        # Проверяем логику времени
+        if start_time >= end_time:
+            raise ValueError("Время начала должно быть меньше времени окончания")
+        
+    except ValueError as e:
+        await message.answer(
+            "❌ Неверный формат времени!\n\n"
+            "Используйте формат: **HH:MM-HH:MM**\n"
+            "Например: 09:00-18:00\n\n"
+            "Попробуйте еще раз или отправьте /cancel для отмены",
+            parse_mode="Markdown"
+        )
+        return
+    
+    # Сохраняем в базу
+    data = await state.get_data()
+    day_num = data.get('working_hours_day')
+    day_name = data.get('working_hours_day_name')
+    
+    await db.set_working_hours(day_num, start_time, end_time, True)
+    
+    text = (
+        f"✅ *Рабочие часы для {day_name} обновлены!*\n\n"
+        f"🕐 Время: {start_time} - {end_time}\n"
+        f"✅ Статус: Включен"
+    )
+    
+    # Получаем обновленные настройки для отображения клавиатуры
+    working_hours = await db.get_working_hours()
+    current_hours = None
+    
+    for hours in working_hours:
+        if hours[0] == day_num:
+            current_hours = hours[1:]  # start_time, end_time, is_active
+            break
+    
+    await message.answer(
+        text,
+        parse_mode="Markdown",
+        reply_markup=get_day_working_hours_keyboard(day_num, day_name, current_hours)
+    )
+    await state.clear()
+
+@admin_router.callback_query(F.data.startswith("working_hours_toggle:"))
+async def working_hours_toggle_callback(callback: CallbackQuery):
+    """Включение/отключение рабочих часов"""
+    if not await db.is_admin(callback.from_user.id):
+        await callback.answer("❌ У вас нет прав для выполнения этой команды.", show_alert=True)
+        return
+    
+    day_num = int(callback.data.split(":")[1])
+    days = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"]
+    day_name = days[day_num]
+    
+    # Получаем текущие настройки
+    working_hours = await db.get_working_hours()
+    current_hours = None
+    
+    for hours in working_hours:
+        if hours[0] == day_num:
+            current_hours = hours[1:]  # start_time, end_time, is_active
+            break
+    
+    if current_hours:
+        start_time, end_time, is_active = current_hours
+        new_status = not is_active
+        await db.set_working_hours(day_num, start_time, end_time, new_status)
+        
+        status_text = "✅ Включен" if new_status else "❌ Отключен"
+        await callback.answer(f"Статус изменен: {status_text}")
+        
+        # Обновляем сообщение
+        text = f"🕐 *Настройка рабочих часов для {day_name}*\n\n"
+        text += f"Текущие настройки:\n🕐 {start_time} - {end_time}\n{status_text}"
+        
+        # Получаем обновленные настройки
+        working_hours = await db.get_working_hours()
+        current_hours = None
+        
+        for hours in working_hours:
+            if hours[0] == day_num:
+                current_hours = hours[1:]  # start_time, end_time, is_active
+                break
+        
+        await callback.message.edit_text(
+            text,
+            parse_mode="Markdown",
+            reply_markup=get_day_working_hours_keyboard(day_num, day_name, current_hours)
+        )
+    else:
+        await callback.answer("❌ Сначала нужно добавить рабочие часы", show_alert=True)
+
+@admin_router.callback_query(F.data.startswith("working_hours_delete:"))
+async def working_hours_delete_callback(callback: CallbackQuery):
+    """Удаление рабочих часов"""
+    if not await db.is_admin(callback.from_user.id):
+        await callback.answer("❌ У вас нет прав для выполнения этой команды.", show_alert=True)
+        return
+    
+    day_num = int(callback.data.split(":")[1])
+    days = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"]
+    day_name = days[day_num]
+    
+    await db.delete_working_hours(day_num)
+    
+    await callback.answer(f"✅ Рабочие часы для {day_name} удалены")
+    
+    text = f"🕐 *Настройка рабочих часов для {day_name}*\n\nНастройки не заданы"
+    
+    await callback.message.edit_text(
+        text,
+        parse_mode="Markdown",
+        reply_markup=get_day_working_hours_keyboard(day_num, day_name, None)
+    )
+
+@admin_router.callback_query(F.data == "working_hours_show_all")
+async def working_hours_show_all_callback(callback: CallbackQuery):
+    """Показать все рабочие часы"""
+    if not await db.is_admin(callback.from_user.id):
+        await callback.answer("❌ У вас нет прав для выполнения этой команды.", show_alert=True)
+        return
+    
+    working_hours = await db.get_working_hours()
+    days = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"]
+    
+    if not working_hours:
+        text = "🕐 *Рабочие часы обратной связи*\n\n❌ Рабочие часы не настроены"
+    else:
+        text = "🕐 *Рабочие часы обратной связи*\n\n"
+        for day_num, start_time, end_time, is_active in working_hours:
+            day_name = days[day_num]
+            status = "✅" if is_active else "❌"
+            text += f"{status} **{day_name}:** {start_time} - {end_time}\n"
+    
+    # Создаем кнопку "Назад"
+    builder = InlineKeyboardBuilder()
+    builder.add(InlineKeyboardButton(text="⬅️ Назад к дням", callback_data="working_hours_back_to_days"))
+    
+    await callback.message.edit_text(
+        text,
+        parse_mode="Markdown",
+        reply_markup=builder.as_markup()
     )
     await callback.answer()
 

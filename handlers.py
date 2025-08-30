@@ -289,6 +289,32 @@ async def back_to_directions(callback: CallbackQuery):
 # Обратная связь
 @router.message(F.text == "💬 Обратная связь")
 async def feedback_menu(message: Message, state: FSMContext):
+    # Проверяем рабочие часы обратной связи
+    is_available, error_message = await db.is_feedback_available_now()
+    
+    if not is_available:
+        # Получаем все рабочие часы для отображения
+        working_hours = await db.get_working_hours()
+        days = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
+        
+        if working_hours:
+            hours_text = "🕐 *Рабочие часы обратной связи:*\n\n"
+            for day_num, start_time, end_time, is_active in working_hours:
+                if is_active:
+                    day_name = days[day_num]
+                    hours_text += f"• {day_name}: {start_time} - {end_time}\n"
+        else:
+            hours_text = "🕐 Рабочие часы не настроены"
+        
+        await message.answer(
+            f"❌ *Обратная связь недоступна*\n\n"
+            f"⏰ {error_message}\n\n"
+            f"{hours_text}\n\n"
+            f"💡 Пожалуйста, обратитесь в рабочее время.",
+            parse_mode="Markdown"
+        )
+        return
+    
     # Проверяем, есть ли у пользователя активная заявка
     has_active = await db.has_active_request(message.from_user.id)
     

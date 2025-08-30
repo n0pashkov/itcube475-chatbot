@@ -145,6 +145,20 @@ class Database:
                 )
             ''')
             
+            # Таблица для хранения рабочих часов обратной связи
+            await db.execute('''
+                CREATE TABLE IF NOT EXISTS feedback_working_hours (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    day_of_week INTEGER NOT NULL, -- 0=Понедельник, 1=Вторник, ..., 6=Воскресенье
+                    start_time TEXT NOT NULL, -- формат HH:MM
+                    end_time TEXT NOT NULL, -- формат HH:MM
+                    is_active BOOLEAN DEFAULT TRUE,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(day_of_week)
+                )
+            ''')
+            
             await db.commit()
             
             # Добавляем первого администратора
@@ -670,6 +684,62 @@ class Database:
                 'total_users': total_users,
                 'total_messages': total_messages
             }
+
+    # Методы для работы с рабочими часами обратной связи
+    async def get_working_hours(self):
+        """Получить все рабочие часы"""
+        async with aiosqlite.connect(self.db_path) as db:
+            cursor = await db.execute('''
+                SELECT day_of_week, start_time, end_time, is_active
+                FROM feedback_working_hours
+                ORDER BY day_of_week
+            ''')
+            return await cursor.fetchall()
+    
+    async def set_working_hours(self, day_of_week: int, start_time: str, end_time: str, is_active: bool = True):
+        """Установить рабочие часы для дня недели"""
+        async with aiosqlite.connect(self.db_path) as db:
+            await db.execute('''
+                INSERT OR REPLACE INTO feedback_working_hours 
+                (day_of_week, start_time, end_time, is_active, updated_at)
+                VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+            ''', (day_of_week, start_time, end_time, is_active))
+            await db.commit()
+    
+    async def delete_working_hours(self, day_of_week: int):
+        """Удалить рабочие часы для дня недели"""
+        async with aiosqlite.connect(self.db_path) as db:
+            await db.execute('DELETE FROM feedback_working_hours WHERE day_of_week = ?', (day_of_week,))
+            await db.commit()
+    
+    async def is_feedback_available_now(self) -> tuple[bool, str]:
+        """Проверить, доступна ли обратная связь сейчас"""
+        from datetime import datetime
+        
+        now = datetime.now()
+        day_of_week = now.weekday()  # 0=Понедельник, 6=Воскресенье
+        current_time = now.strftime("%H:%M")
+        
+        async with aiosqlite.connect(self.db_path) as db:
+            cursor = await db.execute('''
+                SELECT start_time, end_time, is_active
+                FROM feedback_working_hours
+                WHERE day_of_week = ?
+            ''', (day_of_week,))
+            result = await cursor.fetchone()
+            
+            if not result:
+                return False, "Обратная связь не настроена для этого дня недели"
+            
+            start_time, end_time, is_active = result
+            
+            if not is_active:
+                return False, "Обратная связь отключена для этого дня недели"
+            
+            if start_time <= current_time <= end_time:
+                return True, ""
+            else:
+                return False, f"Рабочие часы: {start_time} - {end_time}"
 
 # Создаем глобальный экземпляр базы данных
 db = Database()
