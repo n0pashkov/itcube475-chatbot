@@ -622,10 +622,10 @@ def get_back_to_quick_schedule_keyboard():
     builder.add(InlineKeyboardButton(text="⬅️ Назад", callback_data="quick_schedule"))
     return builder.as_markup()
 
-# Обработка команды !меню в группах
-@group_router.message(F.text == "!меню", F.chat.type.in_({"group", "supergroup"}))
+# Обработка команды /menu в группах
+@group_router.message(F.text == "/menu", F.chat.type.in_({"group", "supergroup"}))
 async def handle_menu_command(message: Message):
-    """Обработка команды !меню в группах"""
+    """Обработка команды /menu в группах"""
     chat_type = await ChatBehavior.determine_chat_type(message)
     
     welcome_text = ChatBehavior.get_welcome_message(
@@ -763,7 +763,7 @@ async def handle_bot_mention(message: Message):
             help_text = (
                 "🤖 *Доступные команды в группе:*\n\n"
                 "• `/start` - показать меню\n"
-                "• `!меню` - быстрый вызов меню\n"
+                "• `/menu` - быстрый вызов меню\n"
                 "• `/chatid` - показать ID чата\n"
                 "• Упомяните меня с словом 'расписание' для быстрого доступа\n\n"
                 "💬 *Для полного функционала напишите мне в личные сообщения!*"
