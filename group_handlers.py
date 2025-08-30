@@ -730,6 +730,9 @@ async def handle_admin_reply_in_group(message: Message):
         # Обновляем статус в админских уведомлениях
         await db.update_notification_status(message.bot, message_id, f"Закрыта ({responder_role})", reply_content)
         
+        # Отправляем уведомления преподавателям о закрытии заявки
+        await db.notify_teachers_about_closed_request(message.bot, message_id, responder_role, reply_content)
+        
         await message.reply(
             f"✅ Ответ на заявку #{message_id} отправлен! Заявка закрыта."
         )

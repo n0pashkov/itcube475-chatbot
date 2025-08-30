@@ -412,10 +412,14 @@ async def process_request_answer(message: Message, state: FSMContext):
             # Обновляем статус в админских уведомлениях
             await db.update_notification_status(message.bot, request_id, "Закрыта (Администратор)", admin_reply)
             
+            # Отправляем уведомления преподавателям о закрытии заявки
+            await db.notify_teachers_about_closed_request(message.bot, request_id, "Администратор", admin_reply)
+            
             await message.answer(
                 f"✅ *Ответ отправлен!*\n\n"
                 f"📝 Заявка #{request_id} закрыта\n"
-                f"👤 Пользователь уведомлен",
+                f"👤 Пользователь уведомлен\n"
+                f"👨‍🏫 Преподаватели уведомлены",
                 parse_mode="Markdown"
             )
         else:
@@ -446,6 +450,9 @@ async def close_request_callback(callback: CallbackQuery):
     if success:
         # Обновляем статус в админских уведомлениях (без ответа)
         await db.update_notification_status(callback.bot, request_id, "Закрыта (Администратор)")
+        
+        # Отправляем уведомления преподавателям о закрытии заявки (без ответа)
+        await db.notify_teachers_about_closed_request(callback.bot, request_id, "Администратор", "Заявка закрыта без ответа")
         
         await callback.answer("✅ Заявка закрыта", show_alert=True)
         # Обновляем информацию о заявке

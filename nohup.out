@@ -1,0 +1,299 @@
+2025-08-29 14:31:17,178 - __main__ - INFO - База данных инициализирована
+2025-08-29 14:31:17,181 - __main__ - INFO - Расписание загружено
+2025-08-29 14:31:17,184 - __main__ - INFO - Синхронизировано 22 направлений
+2025-08-29 14:31:17,210 - __main__ - INFO - Бот запускается...
+2025-08-29 14:31:17,211 - aiogram.dispatcher - INFO - Start polling
+2025-08-29 14:31:17,465 - aiogram.dispatcher - INFO - Run polling for bot @itcube475_bot id=7870848056 - 'Обратная связь IT-Cube'
+2025-08-29 14:31:28,152 - aiogram.event - INFO - Update id=524636445 is handled. Duration 267 ms by bot id=7870848056
+2025-08-29 14:31:40,047 - aiogram.event - INFO - Update id=524636446 is handled. Duration 142 ms by bot id=7870848056
+2025-08-29 14:31:43,048 - aiogram.event - INFO - Update id=524636447 is handled. Duration 193 ms by bot id=7870848056
+2025-08-29 14:31:45,508 - aiogram.event - INFO - Update id=524636448 is handled. Duration 170 ms by bot id=7870848056
+2025-08-29 14:31:59,254 - aiogram.event - INFO - Update id=524636449 is handled. Duration 162 ms by bot id=7870848056
+2025-08-29 14:32:13,481 - aiogram.event - INFO - Update id=524636450 is not handled. Duration 2 ms by bot id=7870848056
+2025-08-29 14:32:15,584 - aiogram.event - INFO - Update id=524636451 is handled. Duration 235 ms by bot id=7870848056
+2025-08-29 14:32:37,556 - aiogram.event - INFO - Update id=524636452 is handled. Duration 242 ms by bot id=7870848056
+2025-08-29 14:32:39,086 - aiogram.event - INFO - Update id=524636453 is handled. Duration 405 ms by bot id=7870848056
+2025-08-29 14:32:53,853 - aiogram.event - INFO - Update id=524636454 is handled. Duration 187 ms by bot id=7870848056
+2025-08-29 14:34:54,897 - aiogram.event - INFO - Update id=524636455 is not handled. Duration 0 ms by bot id=7870848056
+2025-08-29 14:34:56,405 - aiogram.event - INFO - Update id=524636456 is handled. Duration 0 ms by bot id=7870848056
+2025-08-29 14:34:56,874 - aiogram.event - INFO - Update id=524636457 is handled. Duration 159 ms by bot id=7870848056
+2025-08-29 14:34:58,947 - aiogram.event - INFO - Update id=524636458 is handled. Duration 111 ms by bot id=7870848056
+2025-08-29 14:35:04,431 - aiogram.event - INFO - Update id=524636459 is handled. Duration 107 ms by bot id=7870848056
+2025-08-29 14:35:08,001 - aiogram.event - INFO - Update id=524636460 is handled. Duration 194 ms by bot id=7870848056
+2025-08-29 14:35:18,853 - aiogram.event - INFO - Update id=524636461 is handled. Duration 312 ms by bot id=7870848056
+2025-08-29 14:35:38,361 - aiogram.event - INFO - Update id=524636462 is handled. Duration 302 ms by bot id=7870848056
+2025-08-29 14:35:44,794 - aiogram.event - INFO - Update id=524636463 is handled. Duration 117 ms by bot id=7870848056
+2025-08-29 14:35:47,381 - aiogram.event - INFO - Update id=524636464 is handled. Duration 182 ms by bot id=7870848056
+2025-08-29 14:35:50,402 - aiogram.event - INFO - Update id=524636465 is handled. Duration 153 ms by bot id=7870848056
+2025-08-29 14:35:52,165 - aiogram.event - INFO - Update id=524636466 is handled. Duration 191 ms by bot id=7870848056
+2025-08-29 14:35:57,618 - aiogram.event - INFO - Update id=524636467 is handled. Duration 144 ms by bot id=7870848056
+2025-08-29 14:36:00,779 - aiogram.event - INFO - Update id=524636468 is handled. Duration 368 ms by bot id=7870848056
+2025-08-29 14:36:06,108 - aiogram.event - INFO - Update id=524636469 is handled. Duration 301 ms by bot id=7870848056
+2025-08-29 14:36:25,289 - aiogram.event - INFO - Update id=524636470 is handled. Duration 160 ms by bot id=7870848056
+2025-08-29 14:36:32,238 - aiogram.event - INFO - Update id=524636471 is handled. Duration 113 ms by bot id=7870848056
+2025-08-29 14:36:34,022 - aiogram.event - INFO - Update id=524636472 is handled. Duration 147 ms by bot id=7870848056
+2025-08-29 14:36:35,552 - aiogram.event - INFO - Update id=524636473 is handled. Duration 331 ms by bot id=7870848056
+2025-08-29 14:37:01,645 - aiogram.event - INFO - Update id=524636474 is handled. Duration 206 ms by bot id=7870848056
+2025-08-29 14:37:06,300 - aiogram.event - INFO - Update id=524636475 is handled. Duration 318 ms by bot id=7870848056
+2025-08-29 14:37:15,550 - aiogram.event - INFO - Update id=524636476 is handled. Duration 169 ms by bot id=7870848056
+2025-08-29 14:37:17,428 - aiogram.event - INFO - Update id=524636477 is not handled. Duration 202 ms by bot id=7870848056
+2025-08-29 14:37:17,428 - aiogram.event - ERROR - Cause exception while process update id=524636477 by bot id=7870848056
+ValueError: invalid literal for int() with base 10: '4:5624300692'
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/dist-packages/aiogram/dispatcher/dispatcher.py", line 309, in _process_update
+    response = await self.feed_update(bot, update, **kwargs)
+  File "/usr/local/lib/python3.10/dist-packages/aiogram/dispatcher/dispatcher.py", line 158, in feed_update
+    response = await self.update.wrap_outer_middleware(
+  File "/usr/local/lib/python3.10/dist-packages/aiogram/dispatcher/middlewares/error.py", line 25, in __call__
+    return await handler(event, data)
+  File "/usr/local/lib/python3.10/dist-packages/aiogram/dispatcher/middlewares/user_context.py", line 56, in __call__
+    return await handler(event, data)
+  File "/usr/local/lib/python3.10/dist-packages/aiogram/fsm/middleware.py", line 42, in __call__
+    return await handler(event, data)
+  File "/usr/local/lib/python3.10/dist-packages/aiogram/dispatcher/event/telegram.py", line 121, in trigger
+    return await wrapped_inner(event, kwargs)
+  File "/usr/local/lib/python3.10/dist-packages/aiogram/dispatcher/event/handler.py", line 43, in call
+    return await wrapped()
+  File "/usr/local/lib/python3.10/dist-packages/aiogram/dispatcher/dispatcher.py", line 276, in _listen_update
+    return await self.propagate_event(update_type=update_type, event=event, **kwargs)
+  File "/usr/local/lib/python3.10/dist-packages/aiogram/dispatcher/router.py", line 146, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+  File "/usr/local/lib/python3.10/dist-packages/aiogram/dispatcher/router.py", line 141, in _wrapped
+    return await self._propagate_event(
+  File "/usr/local/lib/python3.10/dist-packages/aiogram/dispatcher/router.py", line 174, in _propagate_event
+    response = await router.propagate_event(update_type=update_type, event=event, **kwargs)
+  File "/usr/local/lib/python3.10/dist-packages/aiogram/dispatcher/router.py", line 146, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+  File "/usr/local/lib/python3.10/dist-packages/aiogram/dispatcher/router.py", line 141, in _wrapped
+    return await self._propagate_event(
+  File "/usr/local/lib/python3.10/dist-packages/aiogram/dispatcher/router.py", line 166, in _propagate_event
+    response = await observer.trigger(event, **kwargs)
+  File "/usr/local/lib/python3.10/dist-packages/aiogram/dispatcher/event/telegram.py", line 121, in trigger
+    return await wrapped_inner(event, kwargs)
+  File "/home/itcube475-chatbot/user_logging_middleware.py", line 34, in __call__
+    return await handler(event, data)
+  File "/usr/local/lib/python3.10/dist-packages/aiogram/dispatcher/event/handler.py", line 43, in call
+    return await wrapped()
+  File "/home/itcube475-chatbot/handlers.py", line 1458, in assign_teacher
+    await manage_direction(callback)
+  File "/home/itcube475-chatbot/handlers.py", line 1392, in manage_direction
+    direction_id = int(callback.data.split(":", 1)[1])
+ValueError: invalid literal for int() with base 10: '4:5624300692'
+2025-08-29 14:37:42,691 - aiogram.event - INFO - Update id=524636478 is handled. Duration 96 ms by bot id=7870848056
+2025-08-29 14:37:50,753 - aiogram.event - INFO - Update id=524636479 is handled. Duration 107 ms by bot id=7870848056
+2025-08-29 14:37:52,397 - aiogram.event - INFO - Update id=524636480 is handled. Duration 154 ms by bot id=7870848056
+2025-08-29 14:37:53,895 - aiogram.event - INFO - Update id=524636481 is handled. Duration 189 ms by bot id=7870848056
+2025-08-29 14:37:56,483 - aiogram.event - INFO - Update id=524636482 is handled. Duration 141 ms by bot id=7870848056
+2025-08-29 14:37:58,449 - aiogram.event - INFO - Update id=524636483 is handled. Duration 116 ms by bot id=7870848056
+2025-08-29 14:37:59,857 - aiogram.event - INFO - Update id=524636484 is handled. Duration 145 ms by bot id=7870848056
+2025-08-29 14:38:01,414 - aiogram.event - INFO - Update id=524636485 is handled. Duration 305 ms by bot id=7870848056
+2025-08-29 14:38:29,456 - aiogram.event - INFO - Update id=524636486 is handled. Duration 222 ms by bot id=7870848056
+2025-08-29 14:38:32,386 - aiogram.event - INFO - Update id=524636487 is handled. Duration 198 ms by bot id=7870848056
+2025-08-29 14:38:34,125 - aiogram.event - INFO - Update id=524636488 is handled. Duration 168 ms by bot id=7870848056
+2025-08-29 14:38:36,000 - aiogram.event - INFO - Update id=524636489 is handled. Duration 117 ms by bot id=7870848056
+2025-08-29 14:38:42,843 - aiogram.event - INFO - Update id=524636490 is handled. Duration 159 ms by bot id=7870848056
+2025-08-29 14:38:44,542 - aiogram.event - INFO - Update id=524636491 is handled. Duration 184 ms by bot id=7870848056
+2025-08-30 19:10:41,505 - aiogram.dispatcher - WARNING - Received SIGTERM signal
+2025-08-30 19:10:41,505 - aiogram.dispatcher - INFO - Polling stopped for bot @itcube475_bot id=7870848056 - 'Обратная связь IT-Cube'
+2025-08-30 19:10:41,505 - aiogram.dispatcher - INFO - Polling stopped
+[DEBUG] require_permission проверяет команду 'admin_management' для пользователя 6038913790
+[DEBUG] Определен тип чата: ChatType.PRIVATE_ADMIN
+[DEBUG] can_execute_command для 'admin_management': True
+[DEBUG] Разрешение получено, вызываем обработчик admin_settings_menu
+Ошибка отправки в чат -1002909873729 (Чат -1002909873729): Telegram server says - Bad Request: chat not found
+[DEBUG] require_permission проверяет команду 'admin_management' для пользователя 6038913790
+[DEBUG] Определен тип чата: ChatType.PRIVATE_ADMIN
+[DEBUG] can_execute_command для 'admin_management': True
+[DEBUG] Разрешение получено, вызываем обработчик admin_settings_menu
+[DEBUG] require_permission проверяет команду 'admin_management' для пользователя 6038913790
+[DEBUG] Определен тип чата: ChatType.PRIVATE_ADMIN
+[DEBUG] can_execute_command для 'admin_management': True
+[DEBUG] Разрешение получено, вызываем обработчик admin_settings_menu
+[DEBUG] require_permission проверяет команду 'admin_management' для пользователя 6038913790
+[DEBUG] Определен тип чата: ChatType.PRIVATE_ADMIN
+[DEBUG] can_execute_command для 'admin_management': True
+[DEBUG] Разрешение получено, вызываем обработчик admin_settings_menu
+[DEBUG] require_permission проверяет команду 'admin_management' для пользователя 6038913790
+[DEBUG] Определен тип чата: ChatType.PRIVATE_ADMIN
+[DEBUG] can_execute_command для 'admin_management': True
+[DEBUG] Разрешение получено, вызываем обработчик admin_settings_menu
+2025-08-30 19:10:49,264 - __main__ - INFO - База данных инициализирована
+2025-08-30 19:10:49,266 - __main__ - INFO - Расписание загружено
+2025-08-30 19:10:49,270 - __main__ - INFO - Синхронизировано 22 направлений
+2025-08-30 19:10:49,301 - __main__ - INFO - Бот запускается...
+2025-08-30 19:10:49,301 - aiogram.dispatcher - INFO - Start polling
+2025-08-30 19:10:49,494 - aiogram.dispatcher - INFO - Run polling for bot @itcube475_bot id=7870848056 - 'Обратная связь IT-Cube'
+2025-08-30 19:11:15,378 - aiogram.event - INFO - Update id=524636492 is handled. Duration 4 ms by bot id=7870848056
+2025-08-30 19:11:19,758 - aiogram.event - INFO - Update id=524636493 is handled. Duration 6 ms by bot id=7870848056
+2025-08-30 19:11:25,809 - aiogram.event - INFO - Update id=524636494 is handled. Duration 5 ms by bot id=7870848056
+2025-08-30 19:12:01,254 - aiogram.event - INFO - Update id=524636495 is handled. Duration 273 ms by bot id=7870848056
+2025-08-30 19:12:03,387 - aiogram.event - INFO - Update id=524636496 is handled. Duration 4 ms by bot id=7870848056
+2025-08-30 19:12:07,245 - aiogram.event - INFO - Update id=524636497 is handled. Duration 6 ms by bot id=7870848056
+2025-08-30 19:12:10,110 - aiogram.event - INFO - Update id=524636498 is handled. Duration 99 ms by bot id=7870848056
+2025-08-30 19:12:20,336 - aiogram.event - INFO - Update id=524636499 is handled. Duration 213 ms by bot id=7870848056
+2025-08-30 19:12:30,247 - aiogram.event - INFO - Update id=524636500 is handled. Duration 118 ms by bot id=7870848056
+2025-08-30 19:12:32,558 - aiogram.event - INFO - Update id=524636501 is handled. Duration 234 ms by bot id=7870848056
+2025-08-30 19:12:39,959 - aiogram.event - INFO - Update id=524636502 is handled. Duration 176 ms by bot id=7870848056
+2025-08-30 19:12:46,624 - aiogram.event - INFO - Update id=524636503 is handled. Duration 425 ms by bot id=7870848056
+2025-08-30 19:13:01,606 - aiogram.event - INFO - Update id=524636504 is handled. Duration 284 ms by bot id=7870848056
+2025-08-30 19:13:11,537 - aiogram.event - INFO - Update id=524636505 is handled. Duration 103 ms by bot id=7870848056
+2025-08-30 19:13:15,423 - aiogram.event - INFO - Update id=524636506 is handled. Duration 169 ms by bot id=7870848056
+2025-08-30 19:13:21,985 - aiogram.event - INFO - Update id=524636507 is handled. Duration 144 ms by bot id=7870848056
+2025-08-30 19:13:30,074 - aiogram.event - INFO - Update id=524636508 is handled. Duration 162 ms by bot id=7870848056
+2025-08-30 19:13:36,772 - aiogram.event - INFO - Update id=524636509 is not handled. Duration 143 ms by bot id=7870848056
+2025-08-30 19:13:36,773 - aiogram.event - ERROR - Cause exception while process update id=524636509 by bot id=7870848056
+TelegramBadRequest: Telegram server says - Bad Request: message to edit not found
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/dist-packages/aiogram/dispatcher/dispatcher.py", line 309, in _process_update
+    response = await self.feed_update(bot, update, **kwargs)
+  File "/usr/local/lib/python3.10/dist-packages/aiogram/dispatcher/dispatcher.py", line 158, in feed_update
+    response = await self.update.wrap_outer_middleware(
+  File "/usr/local/lib/python3.10/dist-packages/aiogram/dispatcher/middlewares/error.py", line 25, in __call__
+    return await handler(event, data)
+  File "/usr/local/lib/python3.10/dist-packages/aiogram/dispatcher/middlewares/user_context.py", line 56, in __call__
+    return await handler(event, data)
+  File "/usr/local/lib/python3.10/dist-packages/aiogram/fsm/middleware.py", line 42, in __call__
+    return await handler(event, data)
+  File "/usr/local/lib/python3.10/dist-packages/aiogram/dispatcher/event/telegram.py", line 121, in trigger
+    return await wrapped_inner(event, kwargs)
+  File "/usr/local/lib/python3.10/dist-packages/aiogram/dispatcher/event/handler.py", line 43, in call
+    return await wrapped()
+  File "/usr/local/lib/python3.10/dist-packages/aiogram/dispatcher/dispatcher.py", line 276, in _listen_update
+    return await self.propagate_event(update_type=update_type, event=event, **kwargs)
+  File "/usr/local/lib/python3.10/dist-packages/aiogram/dispatcher/router.py", line 146, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+  File "/usr/local/lib/python3.10/dist-packages/aiogram/dispatcher/router.py", line 141, in _wrapped
+    return await self._propagate_event(
+  File "/usr/local/lib/python3.10/dist-packages/aiogram/dispatcher/router.py", line 174, in _propagate_event
+    response = await router.propagate_event(update_type=update_type, event=event, **kwargs)
+  File "/usr/local/lib/python3.10/dist-packages/aiogram/dispatcher/router.py", line 146, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+  File "/usr/local/lib/python3.10/dist-packages/aiogram/dispatcher/router.py", line 141, in _wrapped
+    return await self._propagate_event(
+  File "/usr/local/lib/python3.10/dist-packages/aiogram/dispatcher/router.py", line 166, in _propagate_event
+    response = await observer.trigger(event, **kwargs)
+  File "/usr/local/lib/python3.10/dist-packages/aiogram/dispatcher/event/telegram.py", line 121, in trigger
+    return await wrapped_inner(event, kwargs)
+  File "/home/itcube475-chatbot/user_logging_middleware.py", line 34, in __call__
+    return await handler(event, data)
+  File "/usr/local/lib/python3.10/dist-packages/aiogram/dispatcher/event/handler.py", line 43, in call
+    return await wrapped()
+  File "/home/itcube475-chatbot/handlers.py", line 714, in send_feedback_with_attachments
+    await callback.message.edit_text(
+  File "/usr/local/lib/python3.10/dist-packages/aiogram/methods/base.py", line 84, in emit
+    return await bot(self)
+  File "/usr/local/lib/python3.10/dist-packages/aiogram/client/bot.py", line 485, in __call__
+    return await self.session(self, method, timeout=request_timeout)
+  File "/usr/local/lib/python3.10/dist-packages/aiogram/client/session/base.py", line 254, in __call__
+    return cast(TelegramType, await middleware(bot, method))
+  File "/usr/local/lib/python3.10/dist-packages/aiogram/client/session/aiohttp.py", line 185, in make_request
+    response = self.check_response(
+  File "/usr/local/lib/python3.10/dist-packages/aiogram/client/session/base.py", line 120, in check_response
+    raise TelegramBadRequest(method=method, message=description)
+aiogram.exceptions.TelegramBadRequest: Telegram server says - Bad Request: message to edit not found
+2025-08-30 19:13:59,792 - aiogram.event - INFO - Update id=524636510 is handled. Duration 87 ms by bot id=7870848056
+2025-08-30 19:14:02,416 - aiogram.event - INFO - Update id=524636511 is handled. Duration 575 ms by bot id=7870848056
+2025-08-30 19:14:16,889 - aiogram.event - INFO - Update id=524636512 is handled. Duration 293 ms by bot id=7870848056
+2025-08-30 19:14:21,280 - aiogram.event - INFO - Update id=524636513 is handled. Duration 115 ms by bot id=7870848056
+2025-08-30 19:14:32,121 - aiogram.event - INFO - Update id=524636514 is handled. Duration 139 ms by bot id=7870848056
+2025-08-30 19:18:16,516 - aiogram.event - INFO - Update id=524636515 is handled. Duration 101 ms by bot id=7870848056
+2025-08-30 19:18:18,648 - aiogram.event - INFO - Update id=524636516 is handled. Duration 191 ms by bot id=7870848056
+2025-08-30 19:18:27,449 - aiogram.event - INFO - Update id=524636517 is handled. Duration 94 ms by bot id=7870848056
+2025-08-30 19:18:35,435 - aiogram.event - INFO - Update id=524636518 is handled. Duration 158 ms by bot id=7870848056
+2025-08-30 19:18:36,802 - aiogram.event - INFO - Update id=524636519 is not handled. Duration 151 ms by bot id=7870848056
+2025-08-30 19:18:36,802 - aiogram.event - ERROR - Cause exception while process update id=524636519 by bot id=7870848056
+TelegramBadRequest: Telegram server says - Bad Request: message to edit not found
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.10/dist-packages/aiogram/dispatcher/dispatcher.py", line 309, in _process_update
+    response = await self.feed_update(bot, update, **kwargs)
+  File "/usr/local/lib/python3.10/dist-packages/aiogram/dispatcher/dispatcher.py", line 158, in feed_update
+    response = await self.update.wrap_outer_middleware(
+  File "/usr/local/lib/python3.10/dist-packages/aiogram/dispatcher/middlewares/error.py", line 25, in __call__
+    return await handler(event, data)
+  File "/usr/local/lib/python3.10/dist-packages/aiogram/dispatcher/middlewares/user_context.py", line 56, in __call__
+    return await handler(event, data)
+  File "/usr/local/lib/python3.10/dist-packages/aiogram/fsm/middleware.py", line 42, in __call__
+    return await handler(event, data)
+  File "/usr/local/lib/python3.10/dist-packages/aiogram/dispatcher/event/telegram.py", line 121, in trigger
+    return await wrapped_inner(event, kwargs)
+  File "/usr/local/lib/python3.10/dist-packages/aiogram/dispatcher/event/handler.py", line 43, in call
+    return await wrapped()
+  File "/usr/local/lib/python3.10/dist-packages/aiogram/dispatcher/dispatcher.py", line 276, in _listen_update
+    return await self.propagate_event(update_type=update_type, event=event, **kwargs)
+  File "/usr/local/lib/python3.10/dist-packages/aiogram/dispatcher/router.py", line 146, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+  File "/usr/local/lib/python3.10/dist-packages/aiogram/dispatcher/router.py", line 141, in _wrapped
+    return await self._propagate_event(
+  File "/usr/local/lib/python3.10/dist-packages/aiogram/dispatcher/router.py", line 174, in _propagate_event
+    response = await router.propagate_event(update_type=update_type, event=event, **kwargs)
+  File "/usr/local/lib/python3.10/dist-packages/aiogram/dispatcher/router.py", line 146, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+  File "/usr/local/lib/python3.10/dist-packages/aiogram/dispatcher/router.py", line 141, in _wrapped
+    return await self._propagate_event(
+  File "/usr/local/lib/python3.10/dist-packages/aiogram/dispatcher/router.py", line 166, in _propagate_event
+    response = await observer.trigger(event, **kwargs)
+  File "/usr/local/lib/python3.10/dist-packages/aiogram/dispatcher/event/telegram.py", line 121, in trigger
+    return await wrapped_inner(event, kwargs)
+  File "/home/itcube475-chatbot/user_logging_middleware.py", line 34, in __call__
+    return await handler(event, data)
+  File "/usr/local/lib/python3.10/dist-packages/aiogram/dispatcher/event/handler.py", line 43, in call
+    return await wrapped()
+  File "/home/itcube475-chatbot/handlers.py", line 714, in send_feedback_with_attachments
+    await callback.message.edit_text(
+  File "/usr/local/lib/python3.10/dist-packages/aiogram/methods/base.py", line 84, in emit
+    return await bot(self)
+  File "/usr/local/lib/python3.10/dist-packages/aiogram/client/bot.py", line 485, in __call__
+    return await self.session(self, method, timeout=request_timeout)
+  File "/usr/local/lib/python3.10/dist-packages/aiogram/client/session/base.py", line 254, in __call__
+    return cast(TelegramType, await middleware(bot, method))
+  File "/usr/local/lib/python3.10/dist-packages/aiogram/client/session/aiohttp.py", line 185, in make_request
+    response = self.check_response(
+  File "/usr/local/lib/python3.10/dist-packages/aiogram/client/session/base.py", line 120, in check_response
+    raise TelegramBadRequest(method=method, message=description)
+aiogram.exceptions.TelegramBadRequest: Telegram server says - Bad Request: message to edit not found
+2025-08-30 19:18:41,912 - aiogram.event - INFO - Update id=524636520 is handled. Duration 209 ms by bot id=7870848056
+2025-08-30 19:18:43,993 - aiogram.event - INFO - Update id=524636521 is handled. Duration 292 ms by bot id=7870848056
+2025-08-30 19:22:31,954 - aiogram.dispatcher - WARNING - Received SIGTERM signal
+2025-08-30 19:22:31,955 - aiogram.dispatcher - INFO - Polling stopped for bot @itcube475_bot id=7870848056 - 'Обратная связь IT-Cube'
+2025-08-30 19:22:31,955 - aiogram.dispatcher - INFO - Polling stopped
+Ошибка отправки в чат -1002909873729 (Чат -1002909873729): Telegram server says - Bad Request: chat not found
+Ошибка отправки в чат -1002909873729 (Чат -1002909873729): Telegram server says - Bad Request: chat not found
+2025-08-30 19:33:56,615 - __main__ - INFO - База данных инициализирована
+2025-08-30 19:33:56,619 - __main__ - INFO - Расписание загружено
+2025-08-30 19:33:56,624 - __main__ - INFO - Синхронизировано 22 направлений
+2025-08-30 19:33:56,661 - __main__ - INFO - Бот запускается...
+2025-08-30 19:33:56,662 - aiogram.dispatcher - INFO - Start polling
+2025-08-30 19:33:56,912 - aiogram.dispatcher - INFO - Run polling for bot @itcube475_bot id=7870848056 - 'Обратная связь IT-Cube'
+2025-08-30 19:53:05,656 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramConflictError: Telegram server says - Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-08-30 19:53:05,656 - aiogram.dispatcher - WARNING - Sleep for 1.000000 seconds and try again... (tryings = 0, bot id = 7870848056)
+2025-08-30 19:53:10,772 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramConflictError: Telegram server says - Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-08-30 19:53:10,772 - aiogram.dispatcher - WARNING - Sleep for 1.372903 seconds and try again... (tryings = 1, bot id = 7870848056)
+2025-08-30 19:53:16,681 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramConflictError: Telegram server says - Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-08-30 19:53:16,681 - aiogram.dispatcher - WARNING - Sleep for 1.867194 seconds and try again... (tryings = 2, bot id = 7870848056)
+2025-08-30 19:53:22,644 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramConflictError: Telegram server says - Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-08-30 19:53:22,644 - aiogram.dispatcher - WARNING - Sleep for 2.335521 seconds and try again... (tryings = 3, bot id = 7870848056)
+2025-08-30 19:53:26,980 - aiogram.dispatcher - INFO - Connection established (tryings = 4, bot id = 7870848056)
+2025-08-30 19:53:27,465 - aiogram.event - INFO - Update id=524636533 is handled. Duration 483 ms by bot id=7870848056
+2025-08-30 19:53:29,439 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramConflictError: Telegram server says - Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-08-30 19:53:29,439 - aiogram.dispatcher - WARNING - Sleep for 1.000000 seconds and try again... (tryings = 0, bot id = 7870848056)
+2025-08-30 19:53:35,291 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramConflictError: Telegram server says - Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-08-30 19:53:35,291 - aiogram.dispatcher - WARNING - Sleep for 1.280528 seconds and try again... (tryings = 1, bot id = 7870848056)
+2025-08-30 19:53:37,551 - aiogram.dispatcher - INFO - Connection established (tryings = 2, bot id = 7870848056)
+2025-08-30 19:53:37,831 - aiogram.event - INFO - Update id=524636535 is handled. Duration 278 ms by bot id=7870848056
+2025-08-30 19:53:40,669 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramConflictError: Telegram server says - Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-08-30 19:53:40,669 - aiogram.dispatcher - WARNING - Sleep for 1.000000 seconds and try again... (tryings = 0, bot id = 7870848056)
+2025-08-30 19:53:45,765 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramConflictError: Telegram server says - Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-08-30 19:53:45,765 - aiogram.dispatcher - WARNING - Sleep for 1.466906 seconds and try again... (tryings = 1, bot id = 7870848056)
+2025-08-30 19:53:50,257 - aiogram.dispatcher - INFO - Connection established (tryings = 2, bot id = 7870848056)
+2025-08-30 19:53:50,264 - aiogram.event - INFO - Update id=524636537 is handled. Duration 6 ms by bot id=7870848056
+2025-08-30 19:53:51,803 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramConflictError: Telegram server says - Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-08-30 19:53:51,804 - aiogram.dispatcher - WARNING - Sleep for 1.000000 seconds and try again... (tryings = 0, bot id = 7870848056)
+2025-08-30 19:53:57,771 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramConflictError: Telegram server says - Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-08-30 19:53:57,772 - aiogram.dispatcher - WARNING - Sleep for 1.227106 seconds and try again... (tryings = 1, bot id = 7870848056)
+2025-08-30 19:54:04,420 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramConflictError: Telegram server says - Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-08-30 19:54:04,420 - aiogram.dispatcher - WARNING - Sleep for 1.697185 seconds and try again... (tryings = 2, bot id = 7870848056)
+2025-08-30 19:54:12,079 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramConflictError: Telegram server says - Conflict: terminated by other getUpdates request; make sure that only one bot instance is running
+2025-08-30 19:54:12,079 - aiogram.dispatcher - WARNING - Sleep for 2.272747 seconds and try again... (tryings = 3, bot id = 7870848056)
+2025-08-30 19:54:19,951 - aiogram.dispatcher - WARNING - Received SIGTERM signal
+2025-08-30 19:54:19,952 - aiogram.dispatcher - INFO - Polling stopped for bot @itcube475_bot id=7870848056 - 'Обратная связь IT-Cube'
+2025-08-30 19:54:19,952 - aiogram.dispatcher - INFO - Polling stopped

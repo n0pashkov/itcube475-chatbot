@@ -394,6 +394,64 @@ class Database:
         except Exception as e:
             print(f"Ошибка обновления статуса уведомлений для заявки {feedback_message_id}: {e}")
     
+    async def notify_teachers_about_closed_request(self, bot, feedback_message_id: int, responder_role: str, answer_text: str):
+        """Отправить уведомления преподавателям о закрытии заявки"""
+        try:
+            # Получаем информацию о заявке
+            feedback_info = await self.get_feedback_message(feedback_message_id)
+            if not feedback_info:
+                return
+            
+            direction_id = feedback_info[8] if len(feedback_info) > 8 else None
+            
+            # Если заявка не для конкретного направления, не отправляем преподавателям
+            if not direction_id or direction_id == "admin":
+                return
+            
+            # Получаем преподавателей для данного направления
+            teachers = await self.get_teachers_for_direction(direction_id)
+            if not teachers:
+                return
+            
+            # Получаем информацию о направлении
+            direction_info = await self.get_direction_by_id(direction_id)
+            direction_name = direction_info[1] if direction_info else "Неизвестное направление"
+            
+            # Формируем текст уведомления
+            user_id, username, first_name, message_text = feedback_info[1:5]
+            
+            notification_text = (
+                f"🔔 *Заявка по вашему направлению закрыта*\n\n"
+                f"📚 *Направление:* {direction_name}\n"
+                f"📝 *Номер заявки:* #{feedback_message_id}\n"
+                f"👤 *Пользователь:* {first_name or 'Без имени'}"
+            )
+            
+            if username:
+                notification_text += f" (@{username})"
+            
+            notification_text += (
+                f"\n🆔 *ID пользователя:* `{user_id}`\n"
+                f"👤 *Ответил:* {responder_role}\n"
+                f"📋 *Статус:* Заявка закрыта\n\n"
+                f"💬 *Текст заявки:*\n{message_text}\n\n"
+                f"📝 *Ответ:*\n{answer_text}"
+            )
+            
+            # Отправляем уведомления всем преподавателям направления
+            for teacher_id, teacher_username, teacher_first_name in teachers:
+                try:
+                    await bot.send_message(
+                        teacher_id,
+                        notification_text,
+                        parse_mode="Markdown"
+                    )
+                except Exception as e:
+                    print(f"Ошибка отправки уведомления преподавателю {teacher_id}: {e}")
+                    
+        except Exception as e:
+            print(f"Ошибка отправки уведомлений преподавателям для заявки {feedback_message_id}: {e}")
+    
     # Методы для работы с прикреплениями
     async def save_attachment(self, feedback_message_id: int, file_id: str, file_type: str, 
                              file_name: str = None, file_size: int = None, mime_type: str = None):

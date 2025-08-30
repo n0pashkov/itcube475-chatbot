@@ -1750,6 +1750,9 @@ async def handle_text_messages(message: Message):
                         # Обновляем статус в админских уведомлениях
                         await db.update_notification_status(message.bot, message_id, f"Закрыта ({responder_role})", reply_content)
                         
+                        # Отправляем уведомления преподавателям о закрытии заявки
+                        await db.notify_teachers_about_closed_request(message.bot, message_id, responder_role, reply_content)
+                        
                         # Определяем правильную клавиатуру для отвечающего
                         if is_admin:
                             response_keyboard = get_admin_keyboard()
