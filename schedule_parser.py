@@ -1,6 +1,7 @@
 import pandas as pd
 from config import SCHEDULE_FILE
 from typing import Dict, List, Tuple
+import os
 
 class ScheduleParser:
     def __init__(self):
@@ -16,6 +17,104 @@ class ScheduleParser:
         except Exception as e:
             print(f"Ошибка загрузки расписания: {e}")
             self.schedule_data = None
+    
+    def _find_schedule_sheet(self, file_path: str) -> Tuple[str, bool]:
+        """Найти лист с расписанием в XLSX файле"""
+        try:
+            xl_file = pd.ExcelFile(file_path, engine='openpyxl')
+            required_columns = ['Направление', 'Преподаватель', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Кабинет']
+            
+            for sheet_name in xl_file.sheet_names:
+                try:
+                    # Читаем лист для проверки структуры
+                    df = pd.read_excel(file_path, sheet_name=sheet_name, engine='openpyxl')
+                    
+                    # Проверяем, есть ли нужные колонки
+                    if df.shape[1] >= 9:  # Минимум 9 колонок
+                        columns_lower = [str(col).lower() for col in df.columns]
+                        required_lower = [col.lower() for col in required_columns]
+                        
+                        # Проверяем, есть ли все нужные колонки
+                        found_columns = []
+                        for req in required_lower:
+                            for col in columns_lower:
+                                if req in col:
+                                    found_columns.append(req)
+                                    break
+                        
+                        if len(found_columns) >= 7:  # Минимум 7 из 9 колонок
+                            print(f"Найден подходящий лист: '{sheet_name}' с колонками: {df.columns.tolist()}")
+                            return sheet_name, True
+                            
+                except Exception as e:
+                    print(f"Ошибка при проверке листа '{sheet_name}': {e}")
+                    continue
+            
+            return None, False
+            
+        except Exception as e:
+            print(f"Ошибка при поиске листа: {e}")
+            return None, False
+    
+    def load_xlsx_schedule(self, file_path: str) -> bool:
+        """Загрузить расписание из XLSX файла"""
+        try:
+            # Проверяем расширение файла
+            if not file_path.lower().endswith('.xlsx'):
+                return False
+            
+            # Ищем подходящий лист
+            sheet_name, found = self._find_schedule_sheet(file_path)
+            if not found:
+                print("Не найден подходящий лист с расписанием")
+                return False
+            
+            # Читаем XLSX файл с найденного листа
+            self.schedule_data = pd.read_excel(file_path, sheet_name=sheet_name, engine='openpyxl')
+            
+            # Удаляем пустые строки
+            self.schedule_data = self.schedule_data.dropna(subset=['Направление'])
+            
+            # Сохраняем в CSV для совместимости
+            self.schedule_data.to_csv(SCHEDULE_FILE, index=False, encoding='utf-8')
+            
+            return True
+        except Exception as e:
+            print(f"Ошибка загрузки XLSX расписания: {e}")
+            return False
+    
+    def validate_xlsx_structure(self, file_path: str) -> Tuple[bool, str]:
+        """Проверить структуру XLSX файла"""
+        try:
+            if not file_path.lower().endswith('.xlsx'):
+                return False, "Файл должен иметь расширение .xlsx"
+            
+            # Ищем подходящий лист
+            sheet_name, found = self._find_schedule_sheet(file_path)
+            if not found:
+                return False, "Не найден лист с правильной структурой расписания"
+            
+            # Читаем файл для проверки структуры
+            df = pd.read_excel(file_path, sheet_name=sheet_name, engine='openpyxl')
+            
+            # Проверяем обязательные колонки
+            required_columns = ['Направление', 'Преподаватель', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Кабинет']
+            
+            missing_columns = [col for col in required_columns if col not in df.columns]
+            if missing_columns:
+                return False, f"Отсутствуют обязательные колонки: {', '.join(missing_columns)}"
+            
+            # Проверяем, что есть данные
+            if df.empty:
+                return False, "Файл не содержит данных"
+            
+            if df['Направление'].isna().all():
+                return False, "Колонка 'Направление' пуста"
+            
+            return True, f"Файл корректный, найден лист: {sheet_name}"
+            
+        except Exception as e:
+            return False, f"Ошибка проверки файла: {str(e)}"
     
     def get_directions(self) -> List[str]:
         """Получить список всех направлений"""
@@ -105,6 +204,27 @@ class ScheduleParser:
             text += "На данный момент занятий не запланировано"
         
         return text
+    
+    def get_statistics(self) -> Dict:
+        """Получить статистику по расписанию"""
+        if self.schedule_data is None:
+            return {}
+        
+        stats = {
+            'total_directions': len(self.schedule_data),
+            'total_teachers': self.schedule_data['Преподаватель'].nunique(),
+            'total_cabinets': self.schedule_data['Кабинет'].nunique(),
+            'days_with_lessons': {}
+        }
+        
+        # Подсчитываем дни с занятиями
+        days = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота']
+        for day in days:
+            if day in self.schedule_data.columns:
+                day_lessons = self.schedule_data[day].notna().sum()
+                stats['days_with_lessons'][day] = day_lessons
+        
+        return stats
 
 # Создаем глобальный экземпляр парсера
 schedule_parser = ScheduleParser()

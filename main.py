@@ -10,6 +10,7 @@ from handlers import router
 from group_handlers import group_router
 from admin_handlers import admin_router
 from teacher_handlers import teacher_router
+from schedule_handlers import schedule_router
 from schedule_parser import schedule_parser
 from user_logging_middleware import UserLoggingMiddleware
 
@@ -52,6 +53,7 @@ async def main():
     dp.include_router(group_router)      # Групповые чаты (высокий приоритет)
     dp.include_router(admin_router)      # Админские функции
     dp.include_router(teacher_router)    # Преподавательские функции
+    dp.include_router(schedule_router)   # Обработчики расписания
     dp.include_router(router)            # Основные хендлеры (низкий приоритет)
     
     # Запуск бота

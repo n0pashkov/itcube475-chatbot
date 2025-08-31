@@ -549,27 +549,21 @@ async def settings_schedule_callback(callback: CallbackQuery):
         await callback.answer("❌ У вас нет прав для выполнения этой команды.", show_alert=True)
         return
     
+    from enhanced_keyboards import get_schedule_settings_keyboard
+    
     text = (
         "📅 *Настройки расписания*\n\n"
-        "🔧 Раздел находится в разработке.\n\n"
-        "Планируемые функции:\n"
-        "• Обновление расписания\n"
-        "• Управление направлениями\n"
-        "• Уведомления об изменениях\n"
-        "• Экспорт расписания"
+        "Здесь вы можете управлять расписанием IT-Cube:\n\n"
+        "• 📤 Загрузить новый XLSX файл с расписанием\n"
+        "• 📊 Просмотреть статистику текущего расписания\n"
+        "• 🔄 Обновить данные из CSV файла\n\n"
+        "Выберите действие:"
     )
-    
-    # Создаем простую кнопку "Назад"
-    from aiogram.utils.keyboard import InlineKeyboardBuilder
-    from aiogram.types import InlineKeyboardButton
-    
-    builder = InlineKeyboardBuilder()
-    builder.add(InlineKeyboardButton(text="⬅️ Назад к настройкам", callback_data="back_to_settings"))
     
     await callback.message.edit_text(
         text,
         parse_mode="Markdown",
-        reply_markup=builder.as_markup()
+        reply_markup=get_schedule_settings_keyboard()
     )
     await callback.answer()
 

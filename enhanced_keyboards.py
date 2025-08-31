@@ -275,6 +275,18 @@ def get_working_hours_keyboard():
     builder.adjust(1)
     return builder.as_markup()
 
+def get_schedule_settings_keyboard():
+    """Клавиатура настроек расписания"""
+    builder = InlineKeyboardBuilder()
+    
+    builder.add(InlineKeyboardButton(text="📤 Загрузить XLSX файл", callback_data="schedule_upload_xlsx"))
+    builder.add(InlineKeyboardButton(text="📊 Статистика расписания", callback_data="schedule_statistics"))
+    builder.add(InlineKeyboardButton(text="🔄 Обновить из CSV", callback_data="schedule_reload_csv"))
+    builder.add(InlineKeyboardButton(text="⬅️ Назад к настройкам", callback_data="back_to_settings"))
+    
+    builder.adjust(1)
+    return builder.as_markup()
+
 def get_day_working_hours_keyboard(day_num: int, day_name: str, current_hours=None):
     """Клавиатура для настройки конкретного дня"""
     builder = InlineKeyboardBuilder()
